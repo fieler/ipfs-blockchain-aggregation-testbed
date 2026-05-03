@@ -1,0 +1,63 @@
+---
+- name: Create monitoring directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  with_items:
+    - "{{ monitoring_directory }}"
+    - "{{ monitoring_directory }}/grafana_provisioning"
+    - "{{ monitoring_directory }}/grafana_provisioning/datasources"
+    - "{{ monitoring_directory }}/grafana_provisioning/dashboards"
+    - "{{ monitoring_directory }}/dashboards"
+
+- name: Render Prometheus Config
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ monitoring_directory }}/prometheus.yml"
+    mode: '0644'
+
+- name: Render Grafana Datasource Provisioning
+  ansible.builtin.template:
+    src: grafana_datasources.yml.j2
+    dest: "{{ monitoring_directory }}/grafana_provisioning/datasources/prometheus.yml"
+    mode: '0644'
+
+- name: Render Grafana Dashboard Provider
+  ansible.builtin.template:
+    src: grafana_dashboards_provider.yml.j2
+    dest: "{{ monitoring_directory }}/grafana_provisioning/dashboards/provider.yml"
+    mode: '0644'
+
+- name: Copy Dashboard config files
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ monitoring_directory }}/dashboards/"
+  with_items:
+    - node_exporter_dashboard.json
+    - besu_dashboard.json
+    - besu_custom_dashboard.json
+    - ipfs_dashboard.json
+    - cadvisor_dashboard.json
+    - thesis_dashboard.json
+
+- name: Render Monitoring Docker Compose
+  ansible.builtin.template:
+    src: monitoring_docker_compose.yml.j2
+    dest: "{{ monitoring_directory}}/docker-compose.yml"
+    mode: '0644'
+
+- name: Deploy Monitoring Stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ monitoring_directory }}"
+    state: present
+
+- name: Allow Ports in UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+  loop: ['9090', '3000']
+
+- name: Reload UFW
+  community.general.ufw:
+    state: reloaded

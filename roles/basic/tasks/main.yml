@@ -1,0 +1,41 @@
+---
+- name: Disable swap in /etc/fstab
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#\n]+\s+swap\s+.*)$'
+    replace: '#\1'
+    backup: true
+
+- name: Set the server hostname
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname | regex_replace('\\..*$', '') }}"
+
+- name: Modify host file to reflect hostname ipv4
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^{{ ansible_facts["default_ipv4"]["address"] }}'
+    line: '{{ ansible_facts["default_ipv4"]["address"] }} {{ inventory_hostname }} {{ inventory_hostname_short }}'
+
+- name: Install ufw firewall package
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+
+- name: Add SSH port to ufw rules
+  community.general.ufw:
+    rule: limit
+    port: "{{ host_config.ssh_port }}"
+    proto: tcp
+
+- name: Enable firewall
+  community.general.ufw:
+    state: enabled
+    policy: deny
+
+- name: Create project directory
+  file:
+    path: "{{ project_directory }}"
+    state: directory
+    group: root
+    owner: root
+    mode: '0755'

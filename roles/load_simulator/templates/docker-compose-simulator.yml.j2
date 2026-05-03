@@ -1,0 +1,10 @@
+services:
+  simulator:
+    build: .
+    container_name: simulator
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      - GATEWAY_URL=http://10.0.0.3:8000/ingest
+      - NUM_SENSORS=50
+      - MESSAGES_PER_SECOND=1.0

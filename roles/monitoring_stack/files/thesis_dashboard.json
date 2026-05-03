@@ -1,0 +1,586 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "grafana" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "System Overview & Health",
+      "type": "row"
+    },
+    {
+      "id": 5,
+      "title": "Generated Load",
+      "description": "Actual requests sent by the IoT simulator per second",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 1 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "background",
+        "textMode": "auto"
+      },
+      "targets": [{ "expr": "sum(rate(simulator_requests_sent_total[30s]))", "legendFormat": "RPS" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 100 },
+              { "color": "red", "value": 400 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Ingestion Rate (Middleware)",
+      "description": "Requests accepted by the middleware per second",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 1 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "background"
+      },
+      "targets": [{ "expr": "sum(rate(middleware_requests_total[30s]))", "legendFormat": "RPS" }],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 11,
+      "title": "Blockchain Writes/s",
+      "description": "Batches committed to the blockchain per second",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 5, "w": 4, "x": 8, "y": 1 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "background"
+      },
+      "targets": [{ "expr": "sum(rate(middleware_batches_processed_total[30s]))", "legendFormat": "Batches/s" }],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 14,
+      "title": "Write Reduction Factor",
+      "description": "IoT Events per Blockchain TX — Higher = more efficient batching. Factor=1 means naive 1:1 (Scenario N).",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 5, "w": 4, "x": 12, "y": 1 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "background"
+      },
+      "targets": [{
+        "expr": "sum(rate(middleware_requests_total[1m])) / sum(rate(middleware_batches_processed_total[1m]))",
+        "legendFormat": "Events/TX"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 1,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "green", "value": 50 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "CPU Usage — All Hosts",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 1 },
+      "options": { "legend": { "displayMode": "table", "showLegend": true, "placement": "bottom" } },
+      "targets": [{
+        "expr": "sum(rate(container_cpu_usage_seconds_total{id=\"/\"}[1m])) by (instance)",
+        "legendFormat": "{{instance}}"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "cores",
+          "custom": { "drawStyle": "line", "fillOpacity": 10 }
+        }
+      }
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
+      "id": 100,
+      "title": "Backpressure & Saturation Signals",
+      "type": "row"
+    },
+    {
+      "id": 101,
+      "title": "Middleware Buffer Size (Time/Volume Strategy)",
+      "description": "Growing buffer signals incoming load > processing capacity (saturation).",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 7 },
+      "options": {
+        "legend": { "displayMode": "list", "showLegend": false },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [{ "expr": "sum(middleware_buffer_size)", "legendFormat": "Buffer Size" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "fixed", "fixedColor": "orange" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 500 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 102,
+      "title": "Ingest Queue Size ('None' Strategy)",
+      "description": "Growing queue means the blockchain cannot keep up — saturation threshold for Scenario N.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 7 },
+      "options": {
+        "legend": { "displayMode": "list", "showLegend": false },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [{ "expr": "sum(middleware_ingest_queue_size)", "legendFormat": "Queue Size" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "id": 103,
+      "title": "Besu TX Pool (Pending Transactions)",
+      "description": "Pending TXs in the blockchain pool. A growing pool signals blockchain throughput saturation.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 7 },
+      "options": {
+        "legend": { "displayMode": "list", "showLegend": false },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [{ "expr": "sum(besu_transaction_pool_number_of_transactions)", "legendFormat": "Pending TXs" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "fixed", "fixedColor": "purple" },
+          "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2 }
+        }
+      }
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
+      "id": 2,
+      "title": "FF1: Skalierbarkeit & Ressourcen-Effizienz",
+      "type": "row"
+    },
+    {
+      "id": 20,
+      "title": "Throughput Pipeline: Simulator → Middleware → Blockchain",
+      "description": "Gap between Sent and Middleware lines = data loss. Blockchain Writes vs. Ingestion gap shows write reduction from batching.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 9, "w": 14, "x": 0, "y": 14 },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        { "expr": "sum(rate(simulator_requests_sent_total[15s]))", "legendFormat": "Simulator Sent (RPS)", "refId": "A" },
+        { "expr": "sum(rate(middleware_requests_total[15s]))", "legendFormat": "Middleware Ingested (RPS)", "refId": "B" },
+        { "expr": "sum(rate(simulator_request_errors_total[15s]))", "legendFormat": "Errors (RPS)", "refId": "C" },
+        { "expr": "sum(rate(middleware_batches_processed_total[15s]))", "legendFormat": "Blockchain Writes (Batches/s)", "refId": "D" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byFrameRefID", "options": "C" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } },
+              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [5, 5] } }
+            ]
+          },
+          {
+            "matcher": { "id": "byFrameRefID", "options": "D" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } },
+              { "id": "custom.lineWidth", "value": 2 }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 22,
+      "title": "Write Reduction Factor Over Time (Events per Blockchain TX)",
+      "description": "Factor=1 → naive 1:1 baseline (Scenario N). Factor>1 → batching reduces blockchain writes. Answers: by what factor does batching shift the saturation limit?",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 9, "w": 10, "x": 14, "y": 14 },
+      "options": {
+        "legend": { "displayMode": "list", "showLegend": false },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [{
+        "expr": "sum(rate(middleware_requests_total[1m])) / sum(rate(middleware_batches_processed_total[1m]))",
+        "legendFormat": "Events / Blockchain TX"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 1,
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "green", "value": 50 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 23,
+      "title": "Avg Batch Size (Current Window)",
+      "description": "Average number of IoT events packed into one blockchain transaction.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 23 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "background"
+      },
+      "targets": [{
+        "expr": "sum(rate(middleware_requests_total[2m])) / sum(rate(middleware_batches_processed_total[2m]))",
+        "legendFormat": "Events/Batch"
+      }],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 1 } }
+    },
+    {
+      "id": 24,
+      "title": "Total Events Processed",
+      "description": "Cumulative IoT events received by the middleware in the selected time range.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 23 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "value"
+      },
+      "targets": [{
+        "expr": "sum(increase(middleware_requests_total[$__range]))",
+        "legendFormat": "Events"
+      }],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 25,
+      "title": "Total Blockchain Writes",
+      "description": "Cumulative blockchain transactions committed. Compare with Total Events to see write reduction.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 23 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "value"
+      },
+      "targets": [{
+        "expr": "sum(increase(middleware_batches_processed_total[$__range]))",
+        "legendFormat": "Batches"
+      }],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 26,
+      "title": "Batch Failures",
+      "description": "Failed blockchain submissions — data integrity risk indicator.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 23 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "background"
+      },
+      "targets": [{
+        "expr": "sum(increase(middleware_batches_failed_total[$__range]))",
+        "legendFormat": "Failures"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 28 },
+      "id": 3,
+      "title": "FF2: Latenz — Time-to-Finality & Effizienz-Trade-off",
+      "type": "row"
+    },
+    {
+      "id": 30,
+      "title": "End-to-End Time-to-Finality (p99 / p95 / Avg)",
+      "description": "Time from IoT event ingest until the transaction is confirmed on ALL blockchain nodes globally. Core metric for FF2.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 29 },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(middleware_e2e_finality_seconds_bucket[2m])) by (le))",
+          "legendFormat": "p99 TTF",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(middleware_e2e_finality_seconds_bucket[2m])) by (le))",
+          "legendFormat": "p95 TTF",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(middleware_e2e_finality_seconds_sum[2m]) / rate(middleware_e2e_finality_seconds_count[2m])",
+          "legendFormat": "avg TTF",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "lineWidth": 2 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byFrameRefID", "options": "C" },
+            "properties": [
+              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } },
+              { "id": "custom.lineWidth", "value": 1 }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 32,
+      "title": "Latency Component Breakdown (IPFS / Chain / Propagation)",
+      "description": "Decomposition of TTF: upload to IPFS + anchor to blockchain + global propagation. Shows where time is spent.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 29 },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "rate(middleware_ipfs_upload_seconds_sum[1m]) / rate(middleware_ipfs_upload_seconds_count[1m])",
+          "legendFormat": "IPFS Upload (avg)"
+        },
+        {
+          "expr": "rate(middleware_chain_anchor_seconds_sum[1m]) / rate(middleware_chain_anchor_seconds_count[1m])",
+          "legendFormat": "Chain Anchor (avg)"
+        },
+        {
+          "expr": "rate(middleware_global_propagation_seconds_sum[1m]) / rate(middleware_global_propagation_seconds_count[1m])",
+          "legendFormat": "Global Propagation (avg)"
+        },
+        {
+          "expr": "rate(middleware_batch_processing_seconds_sum[1m]) / rate(middleware_batch_processing_seconds_count[1m])",
+          "legendFormat": "Total Batch Duration (avg)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "id": 33,
+      "title": "Current Avg TTF",
+      "description": "Average end-to-end Time-to-Finality in the current time window.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 38 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "background"
+      },
+      "targets": [{
+        "expr": "rate(middleware_e2e_finality_seconds_sum[5m]) / rate(middleware_e2e_finality_seconds_count[5m])",
+        "legendFormat": "Avg TTF"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 2,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 30 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 34,
+      "title": "Current p99 TTF",
+      "description": "99th percentile Time-to-Finality — worst-case latency for 99% of transactions.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 38 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "background"
+      },
+      "targets": [{
+        "expr": "histogram_quantile(0.99, sum(rate(middleware_e2e_finality_seconds_bucket[5m])) by (le))",
+        "legendFormat": "p99 TTF"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 2,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 15 },
+              { "color": "red", "value": 60 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 35,
+      "title": "Avg IPFS Upload Duration",
+      "description": "Average time to upload one batch to IPFS. Component of TTF.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 38 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "value"
+      },
+      "targets": [{
+        "expr": "rate(middleware_ipfs_upload_seconds_sum[5m]) / rate(middleware_ipfs_upload_seconds_count[5m])",
+        "legendFormat": "IPFS Upload"
+      }],
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 3 } }
+    },
+    {
+      "id": 36,
+      "title": "Avg Chain Anchor Duration",
+      "description": "Average time to submit and confirm a transaction on the blockchain. Component of TTF.",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 38 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "graphMode": "area",
+        "colorMode": "value"
+      },
+      "targets": [{
+        "expr": "rate(middleware_chain_anchor_seconds_sum[5m]) / rate(middleware_chain_anchor_seconds_count[5m])",
+        "legendFormat": "Chain Anchor"
+      }],
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 3 } }
+    }
+
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["Bachelorarbeit", "hcloud", "thesis"],
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Thesis Master Analytics",
+  "uid": "thesis-hcloud-master"
+}

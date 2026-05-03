@@ -1,0 +1,12 @@
+# ---> Python
+__pycache__/
+*.pyc
+
+# ---> Ansible
+*.retry
+.ansible
+.venv
+.tmp_artifacts
+.tmp_plots
+*.log
+.claude

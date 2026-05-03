@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thesis Traceability Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style>
+        :root {
+            --color-primary: #4f46e5;
+            --color-primary-light: #818cf8;
+            --color-primary-bg: #eef2ff;
+            --color-success: #16a34a;
+            --color-success-bg: #f0fdf4;
+            --color-warning: #d97706;
+            --color-warning-bg: #fffbeb;
+            --color-error: #dc2626;
+            --color-error-bg: #fef2f2;
+            --color-bg: #f1f5f9;
+            --color-surface: #ffffff;
+            --color-border: #e2e8f0;
+            --color-text: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-header: #0f172a;
+            --radius: 8px;
+            --radius-lg: 12px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif; background: var(--color-bg); color: var(--color-text); line-height: 1.5; }
+
+        /* --- HEADER --- */
+        .dashboard-header { background: var(--color-header); color: #fff; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+        .dashboard-header h1 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
+        .status-badges { display: flex; gap: 0.75rem; }
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 500; padding: 4px 10px; border-radius: 100px; background: rgba(255,255,255,0.1); }
+        .status-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .status-badge.up::before { background: #4ade80; box-shadow: 0 0 4px #4ade80; }
+        .status-badge.down::before { background: #f87171; box-shadow: 0 0 4px #f87171; }
+        .status-badge.unknown::before { background: #94a3b8; }
+
+        /* --- NAVIGATION TABS --- */
+        .nav-tabs-bar { background: var(--color-surface); border-bottom: 2px solid var(--color-border); padding: 0 2rem; display: flex; gap: 0; }
+        .nav-tab { padding: 0.8rem 1.25rem; font-size: 0.85rem; font-weight: 600; color: var(--color-text-secondary); border: none; background: transparent; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+        .nav-tab:hover { color: var(--color-primary); }
+        .nav-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+
+        /* --- LAYOUT --- */
+        .page { max-width: 1400px; margin: 0 auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+        .row { display: grid; gap: 1.5rem; }
+        .row-2 { grid-template-columns: 1fr 1fr; }
+        .row-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+        /* --- PANELS --- */
+        .panel { background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: 1.25rem; }
+        .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-border); }
+        .panel-header h2 { font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); }
+
+        /* --- FORMS --- */
+        label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.03em; }
+        input, select { width: 100%; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius); font-size: 0.9rem; color: var(--color-text); background: var(--color-surface); transition: border-color 0.15s; }
+        input:focus, select:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-bg); }
+        input:disabled, select:disabled { background: #f8fafc; color: var(--color-text-secondary); cursor: not-allowed; }
+        .form-group { margin-bottom: 1rem; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
+
+        /* --- BUTTONS --- */
+        button { font-family: inherit; font-size: 0.8rem; font-weight: 600; padding: 8px 14px; border: none; border-radius: var(--radius); cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-primary { background: var(--color-primary); color: #fff; }
+        .btn-primary:hover { background: #4338ca; }
+        .btn-success { background: var(--color-success); color: #fff; }
+        .btn-success:hover { background: #15803d; }
+        .btn-danger { background: var(--color-error); color: #fff; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-secondary { background: transparent; color: var(--color-text-secondary); border: 1px solid var(--color-border); }
+        .btn-secondary:hover { background: #f8fafc; }
+        .btn-warning { background: var(--color-warning); color: #fff; }
+        .btn-warning:hover { background: #b45309; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .btn-sm { font-size: 0.75rem; padding: 5px 10px; }
+
+        /* --- STATUS INLINE --- */
+        .status-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; padding: 4px 10px; border-radius: 100px; }
+        .status-inline.running { background: var(--color-success-bg); color: var(--color-success); }
+        .status-inline.stopped { background: var(--color-error-bg); color: var(--color-error); }
+        .status-inline.idle { background: #f1f5f9; color: var(--color-text-secondary); }
+
+        /* --- LOG PANEL --- */
+        .log-panel { background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: var(--radius); height: 300px; overflow-y: auto; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 0.78rem; line-height: 1.5; resize: vertical; min-height: 150px; max-height: 600px; }
+        .log-panel-full { height: calc(100vh - 200px); max-height: none; }
+        .log-entry { white-space: pre-wrap; margin-bottom: 2px; }
+        .log-entry .time { color: #64748b; margin-right: 1ch; }
+        .log-entry .level-INFO { color: #7dd3fc; }
+        .log-entry .level-SUCCESS { color: #86efac; }
+        .log-entry .level-WARN { color: #fcd34d; }
+        .log-entry .level-ERROR { color: #fca5a5; font-weight: 600; }
+        .log-filters { display: flex; gap: 4px; }
+        .log-filter-btn { font-size: 0.7rem; padding: 3px 8px; border-radius: 100px; border: 1px solid var(--color-border); background: transparent; color: var(--color-text-secondary); cursor: pointer; }
+        .log-filter-btn.active { border-color: transparent; color: #fff; }
+        .log-filter-btn.active.f-INFO { background: #0ea5e9; }
+        .log-filter-btn.active.f-SUCCESS { background: var(--color-success); }
+        .log-filter-btn.active.f-WARN { background: var(--color-warning); }
+        .log-filter-btn.active.f-ERROR { background: var(--color-error); }
+
+        /* --- TABLE --- */
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        thead th { text-align: left; padding: 10px 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); background: #f8fafc; border-bottom: 2px solid var(--color-border); }
+        tbody td { padding: 10px 12px; border-bottom: 1px solid var(--color-border); }
+        tbody tr:hover { background: #f8fafc; }
+        code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1rem; font-size: 0.85rem; color: var(--color-text-secondary); }
+
+        /* --- QUEUE ITEMS --- */
+        .queue-list { display: flex; flex-direction: column; gap: 0.4rem; }
+        .queue-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.9rem; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); font-size: 0.85rem; }
+        .queue-item.running { border-color: var(--color-primary); background: var(--color-primary-bg); }
+        .queue-item.completed { border-color: #bbf7d0; background: var(--color-success-bg); }
+        .queue-item.error { border-color: #fecaca; background: var(--color-error-bg); }
+        .queue-item.skipped { opacity: 0.5; }
+        .queue-item-label { font-weight: 600; flex: 1; }
+        .queue-item-meta { font-size: 0.75rem; color: var(--color-text-secondary); white-space: nowrap; }
+        .queue-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .queue-status-dot.pending { background: #94a3b8; }
+        .queue-status-dot.running { background: var(--color-primary); box-shadow: 0 0 6px var(--color-primary); animation: qpulse 1s ease-in-out infinite; }
+        .queue-status-dot.completed { background: var(--color-success); }
+        .queue-status-dot.error { background: var(--color-error); }
+        .queue-status-dot.skipped { background: #94a3b8; }
+        @keyframes qpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* --- SCENARIO SELECTOR --- */
+        .scenario-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem; }
+        .scenario-btn { padding: 6px 14px; border-radius: var(--radius); border: 2px solid var(--color-border); background: var(--color-surface); font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.15s; }
+        .scenario-btn:hover { border-color: var(--color-primary-light); color: var(--color-primary); }
+        .scenario-btn.active { border-color: var(--color-primary); background: var(--color-primary-bg); color: var(--color-primary); }
+        .rate-selector { display: flex; gap: 0.4rem; }
+        .rate-btn { flex: 1; padding: 6px; border-radius: var(--radius); border: 2px solid var(--color-border); background: var(--color-surface); font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.15s; text-align: center; }
+        .rate-btn.active { border-color: var(--color-primary); background: var(--color-primary-bg); color: var(--color-primary); }
+
+        /* --- PROGRESS --- */
+        .progress-card { padding: 1.25rem; border: 1px solid var(--color-primary-light); border-radius: var(--radius-lg); background: var(--color-primary-bg); }
+        .progress-bar-track { height: 8px; background: rgba(79,70,229,0.15); border-radius: 4px; overflow: hidden; margin: 0.5rem 0 1rem; }
+        .progress-bar-fill { height: 100%; border-radius: 4px; background: var(--color-primary); transition: width 1s linear; }
+        .countdown { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-primary); line-height: 1; }
+        .progress-meta { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 0.5rem; }
+        .progress-meta strong { color: var(--color-text); }
+
+        /* --- ALERT --- */
+        .alert { padding: 1rem; border-radius: var(--radius); font-size: 0.85rem; font-weight: 500; }
+        .alert-error { background: var(--color-error-bg); color: var(--color-error); border: 1px solid #fecaca; }
+        .alert-success { background: var(--color-success-bg); color: var(--color-success); border: 1px solid #bbf7d0; }
+        .alert-info { background: var(--color-primary-bg); color: var(--color-primary); border: 1px solid #c7d2fe; }
+
+        /* --- CHARTS --- */
+        .chart-container { position: relative; height: 220px; }
+
+        /* --- MODAL --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(2px); }
+        .modal-box { background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: 0 20px 60px rgba(0,0,0,0.2); max-width: 700px; width: 90%; max-height: 80vh; display: flex; flex-direction: column; }
+        .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-border); }
+        .modal-header h3 { font-size: 0.95rem; }
+        .modal-close { width: 28px; height: 28px; border-radius: 50%; border: none; background: #f1f5f9; color: var(--color-text-secondary); font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .modal-close:hover { background: var(--color-error-bg); color: var(--color-error); }
+        .modal-body { padding: 1.25rem; overflow-y: auto; flex: 1; }
+        .modal-body pre { background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: var(--radius); font-size: 0.8rem; white-space: pre-wrap; word-wrap: break-word; overflow-x: auto; }
+        .modal-body .json-key { color: #7dd3fc; }
+        .modal-body .json-string { color: #86efac; }
+        .modal-body .json-number { color: #fcd34d; }
+        .modal-body .json-bool { color: #c4b5fd; }
+
+        /* --- NOTIFICATIONS --- */
+        .notifications-container { position: fixed; top: 1rem; right: 1rem; z-index: 2000; display: flex; flex-direction: column; gap: 0.5rem; }
+        .notification { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: var(--radius); box-shadow: var(--shadow-md); color: #fff; font-size: 0.85rem; font-weight: 500; max-width: 340px; opacity: 1; transition: opacity 0.4s; }
+        .notification.fade-out { opacity: 0; }
+        .notification.success { background: var(--color-success); }
+        .notification.error { background: var(--color-error); }
+        .notification-message { flex: 1; }
+        .notification-close { background: none; border: none; color: rgba(255,255,255,0.8); cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; flex-shrink: 0; }
+        .notification-close:hover { color: #fff; }
+
+        /* --- SPINNER --- */
+        .spinner { width: 16px; height: 16px; border: 2px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
+        .spinner-light { border-color: rgba(255,255,255,0.3); border-top-color: #fff; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 900px) {
+            .row-2, .row-3 { grid-template-columns: 1fr; }
+            .page { padding: 1rem; }
+            .nav-tabs-bar { padding: 0 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <div id="notifications-root"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef, useMemo } = React;
+        const API_URL = '';
+
+        // ===================== CONSTANTS =====================
+        const SCENARIO_ORDER = ['N', 'V1', 'V2', 'V3', 'Z1', 'Z2', 'Z3'];
+        const RATE_ORDER = [1, 5, 10];
+
+        const SCENARIO_CONFIGS = {
+            N:  { middleware_config: { batching_strategy: 'none' }, description: 'Naives Baseline-Mapping (kein Puffer)' },
+            V1: { middleware_config: { batching_strategy: 'volume', batch_size_limit: 50 },  description: 'Volumenbasiertes Batching, Schwellenwert 50' },
+            V2: { middleware_config: { batching_strategy: 'volume', batch_size_limit: 100 }, description: 'Volumenbasiertes Batching, Schwellenwert 100' },
+            V3: { middleware_config: { batching_strategy: 'volume', batch_size_limit: 500 }, description: 'Volumenbasiertes Batching, Schwellenwert 500' },
+            Z1: { middleware_config: { batching_strategy: 'time', batch_time_limit: 10 }, description: 'Zeitbasiertes Batching, 10 s' },
+            Z2: { middleware_config: { batching_strategy: 'time', batch_time_limit: 20 }, description: 'Zeitbasiertes Batching, 20 s' },
+            Z3: { middleware_config: { batching_strategy: 'time', batch_time_limit: 60 }, description: 'Zeitbasiertes Batching, 60 s' },
+        };
+
+        const NUM_SENSORS = 50; // fixed across all scenarios
+
+        function buildExperiment(scenario, rate, warmupMin, expMin, reps, cooldownMin) {
+            const cfg = SCENARIO_CONFIGS[scenario];
+            return {
+                label: `${scenario}_${rate}rps`,
+                middleware_config: cfg.middleware_config,
+                simulator_config: { num_sensors: NUM_SENSORS, messages_per_second: rate },
+                warmup_duration_minutes: warmupMin,
+                experiment_duration_minutes: expMin,
+                repetitions: reps,
+                cooldown_minutes: cooldownMin,
+            };
+        }
+
+        // ===================== HASH ROUTER =====================
+        function useHashRouter() {
+            const getHash = () => window.location.hash.replace(/^#\/?/, '') || 'scheduler';
+            const [route, setRoute] = useState(getHash);
+            useEffect(() => {
+                const handler = () => setRoute(getHash());
+                window.addEventListener('hashchange', handler);
+                return () => window.removeEventListener('hashchange', handler);
+            }, []);
+            return route;
+        }
+
+        // ===================== NOTIFICATIONS =====================
+        function Notification({ message, type, onDismiss }) {
+            const [isFading, setIsFading] = useState(false);
+            useEffect(() => {
+                const fade = setTimeout(() => setIsFading(true), 9500);
+                const dismiss = setTimeout(onDismiss, 10000);
+                return () => { clearTimeout(fade); clearTimeout(dismiss); };
+            }, [onDismiss]);
+            return (
+                <div className={`notification ${type} ${isFading ? 'fade-out' : ''}`}>
+                    <span className="notification-message">{message}</span>
+                    <button className="notification-close" onClick={onDismiss} title="Dismiss">&#x2715;</button>
+                </div>
+            );
+        }
+
+        function Notifications({ notifications, onDismiss }) {
+            return ReactDOM.createPortal(
+                <div className="notifications-container">
+                    {notifications.map(n => <Notification key={n.id} {...n} onDismiss={() => onDismiss(n.id)} />)}
+                </div>,
+                document.getElementById('notifications-root')
+            );
+        }
+
+        // ===================== STATUS BAR =====================
+        function StatusBar({ health }) {
+            const svc = (name, up) => (
+                <span className={`status-badge ${up === true ? 'up' : up === false ? 'down' : 'unknown'}`}>{name}</span>
+            );
+            return (
+                <div className="status-badges">
+                    {svc('Simulator', health.simulator)}
+                    {svc('Middleware', health.middleware)}
+                    {svc('Blockchain', health.blockchain)}
+                </div>
+            );
+        }
+
+        // ===================== LOG PANEL =====================
+        function LogPanel({ logs, onClear, fullHeight }) {
+            const logEndRef = useRef(null);
+            const panelRef = useRef(null);
+            const [autoScroll, setAutoScroll] = useState(true);
+            const [filters, setFilters] = useState({ INFO: true, SUCCESS: true, WARN: true, ERROR: true });
+
+            useEffect(() => {
+                if (autoScroll) logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [logs, autoScroll]);
+
+            const handleScroll = () => {
+                const el = panelRef.current;
+                if (!el) return;
+                setAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 40);
+            };
+
+            const toggleFilter = (level) => setFilters(prev => ({ ...prev, [level]: !prev[level] }));
+            const filtered = logs.filter(l => filters[l.level]);
+            const counts = logs.reduce((acc, l) => { acc[l.level] = (acc[l.level] || 0) + 1; return acc; }, {});
+
+            return (
+                <>
+                    <div className="panel-header">
+                        <h2>Live Log Stream ({logs.length})</h2>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <div className="log-filters">
+                                {['INFO','SUCCESS','WARN','ERROR'].map(l => (
+                                    <button key={l} className={`log-filter-btn f-${l} ${filters[l] ? 'active' : ''}`}
+                                        onClick={() => toggleFilter(l)}>{l} {counts[l] ? `(${counts[l]})` : ''}</button>
+                                ))}
+                            </div>
+                            <button className="btn-secondary btn-sm" onClick={onClear}>Clear</button>
+                        </div>
+                    </div>
+                    <div className={`log-panel ${fullHeight ? 'log-panel-full' : ''}`} ref={panelRef} onScroll={handleScroll}>
+                        {filtered.length === 0 && <div style={{ color: '#64748b' }}>Waiting for log events...</div>}
+                        {filtered.map((log, i) => (
+                            <div key={i} className="log-entry">
+                                <span className="time">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                                <span className={`level-${log.level}`}>[{log.level}]</span>
+                                <span> {log.message}</span>
+                            </div>
+                        ))}
+                        <div ref={logEndRef} />
+                    </div>
+                    {!autoScroll && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.5rem' }}>
+                            <button className="btn-secondary btn-sm" onClick={() => { setAutoScroll(true); logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }}>
+                                Scroll to bottom
+                            </button>
+                        </div>
+                    )}
+                </>
+            );
+        }
+
+        // ===================== MODAL =====================
+        function Modal({ content, onClose }) {
+            const syntaxHighlight = (json) => json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, (match) => {
+                let cls = 'json-number';
+                if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
+                else if (/true|false/.test(match)) cls = 'json-bool';
+                return `<span class="${cls}">${match}</span>`;
+            });
+            let displayContent = null;
+            if (content.type === 'loading') {
+                displayContent = <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--color-text-secondary)' }}><div className="spinner"></div> Loading from IPFS...</div>;
+            } else if (content.type === 'error') {
+                displayContent = <div className="alert alert-error">{content.error}</div>;
+            } else if (content.type === 'data') {
+                let formatted = content.content, isJson = false;
+                try { formatted = JSON.stringify(JSON.parse(content.content), null, 2); isJson = true; } catch {}
+                displayContent = isJson
+                    ? <pre dangerouslySetInnerHTML={{ __html: syntaxHighlight(formatted) }} />
+                    : <pre>{formatted}</pre>;
+            }
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal-box" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>IPFS Content</h3>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                {content.type === 'data' && <button className="btn-secondary btn-sm" onClick={() => navigator.clipboard.writeText(content.content)}>Copy</button>}
+                                <button className="modal-close" onClick={onClose}>&times;</button>
+                            </div>
+                        </div>
+                        <div className="modal-body">
+                            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: '0.75rem' }}><code>{content.hash}</code></p>
+                            {displayContent}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ===================== CHARTS =====================
+        function MetricsChart({ title, chartRef }) {
+            return (
+                <div className="panel">
+                    <div className="panel-header"><h2>{title}</h2></div>
+                    <div className="chart-container"><canvas ref={chartRef}></canvas></div>
+                </div>
+            );
+        }
+
+        // ===================== SCHEDULER PAGE =====================
+        function QueueItem({ item, isCurrent, currentRun, onDelete }) {
+            const statusColors = { pending: '#94a3b8', running: 'var(--color-primary)', completed: 'var(--color-success)', error: 'var(--color-error)', skipped: '#94a3b8' };
+            return (
+                <div className={`queue-item ${item.status}`}>
+                    <div className={`queue-status-dot ${item.status}`}></div>
+                    <div className="queue-item-label">
+                        {item.label}
+                        {item.status === 'running' && <span style={{ fontSize: '0.75rem', fontWeight: 400, marginLeft: 8, color: 'var(--color-primary)' }}>
+                            run {currentRun}/{item.repetitions}
+                        </span>}
+                    </div>
+                    <div className="queue-item-meta">
+                        {item.status === 'completed' ? `${item.completedRuns} runs` :
+                         item.status === 'pending' ? `${item.repetitions}x ${item.experiment_duration_minutes}min` :
+                         item.status === 'skipped' ? 'skipped' :
+                         item.status === 'error' ? `${item.completedRuns}/${item.repetitions} done` : ''}
+                    </div>
+                    {item.status === 'pending' && onDelete && (
+                        <button className="btn-secondary btn-sm" onClick={() => onDelete(item.id)} style={{ padding: '3px 8px' }}>&times;</button>
+                    )}
+                </div>
+            );
+        }
+
+        function formatCountdown(seconds) {
+            const m = Math.floor(Math.abs(seconds) / 60);
+            const s = Math.floor(Math.abs(seconds) % 60);
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function SchedulerPage({ schedulerStatus, handleApiCall, isApiLoading }) {
+            const [selectedScenario, setSelectedScenario] = useState('V1');
+            const [selectedRate, setSelectedRate] = useState(5);
+            const [warmupMin, setWarmupMin] = useState(5);
+            const [expMin, setExpMin] = useState(15);
+            const [reps, setReps] = useState(5);
+            const [cooldownMin, setCooldownMin] = useState(10);
+
+            const s = schedulerStatus;
+            const queue = s?.queue || [];
+            const isRunning = s?.status === 'running';
+            const isIdle = !s || s.status === 'idle';
+            const isCompleted = s?.status === 'completed';
+            const isError = s?.status === 'error';
+
+            const handleAddToQueue = () => {
+                const exp = buildExperiment(selectedScenario, selectedRate, warmupMin, expMin, reps, cooldownMin);
+                handleApiCall({
+                    endpoint: '/api/scheduler/queue/add',
+                    options: { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ experiments: [exp] }) },
+                    successMessage: `Added ${exp.label} to queue`,
+                });
+            };
+
+            const handleGenerateMatrix = () => {
+                const experiments = [];
+                for (const scenario of SCENARIO_ORDER) {
+                    for (const rate of RATE_ORDER) {
+                        experiments.push(buildExperiment(scenario, rate, warmupMin, expMin, reps, cooldownMin));
+                    }
+                }
+                handleApiCall({
+                    endpoint: '/api/scheduler/queue',
+                    options: { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ experiments }) },
+                    successMessage: `Queue set: ${experiments.length} experiments (${SCENARIO_ORDER.length} scenarios × ${RATE_ORDER.length} rates)`,
+                });
+            };
+
+            const handleClearQueue = () => handleApiCall({
+                endpoint: '/api/scheduler/queue',
+                options: { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ experiments: [] }) },
+                successMessage: 'Queue cleared',
+            });
+
+            const handleDeleteItem = (id) => handleApiCall({
+                endpoint: `/api/scheduler/queue/${id}`,
+                options: { method: 'DELETE' },
+                successMessage: 'Item removed from queue',
+            });
+
+            const handleStart = () => handleApiCall({
+                endpoint: '/api/scheduler/start',
+                options: { method: 'POST' },
+                successMessage: 'Scheduler started!',
+                errorMessage: 'Failed to start scheduler',
+            });
+
+            const handleStop = () => handleApiCall({
+                endpoint: '/api/scheduler/stop',
+                options: { method: 'POST' },
+                successMessage: 'Scheduler stopped.',
+            });
+
+            const handleReset = () => handleApiCall({
+                endpoint: '/api/scheduler/reset',
+                options: { method: 'POST' },
+                successMessage: 'Scheduler reset.',
+            });
+
+            const handleSkip = () => handleApiCall({
+                endpoint: '/api/scheduler/skip-current',
+                options: { method: 'POST' },
+                successMessage: 'Skip requested.',
+            });
+
+            // ETA calculation
+            const computeEta = () => {
+                if (!isRunning || !s) return null;
+                let remainingMs = 0;
+                const expDurMs = (e) => (e.warmup_duration_minutes + e.experiment_duration_minutes) * 60 * 1000 * e.repetitions
+                    + e.cooldown_minutes * 60 * 1000 * Math.max(0, e.repetitions - 1);
+
+                for (let i = 0; i < queue.length; i++) {
+                    const exp = queue[i];
+                    if (exp.status === 'pending') {
+                        remainingMs += expDurMs(exp) + exp.cooldown_minutes * 60 * 1000;
+                    } else if (exp.status === 'running') {
+                        // Add remaining phase time
+                        if (s.phaseProgress) remainingMs += s.phaseProgress.remaining_seconds * 1000;
+                        // Add remaining runs
+                        const runsLeft = exp.repetitions - (s.currentRunIndex || 1);
+                        if (runsLeft > 0) {
+                            remainingMs += runsLeft * (exp.warmup_duration_minutes + exp.experiment_duration_minutes) * 60 * 1000;
+                            remainingMs += runsLeft * exp.cooldown_minutes * 60 * 1000;
+                        }
+                    }
+                }
+                return new Date(Date.now() + remainingMs);
+            };
+
+            const eta = computeEta();
+
+            const phaseLabel = { warmup: 'Warm-up', experiment: 'Experiment', cooldown: 'Cooldown' };
+            const phaseColor = { warmup: '#6366f1', experiment: '#16a34a', cooldown: '#d97706' };
+
+            const pendingCount = queue.filter(e => e.status === 'pending').length;
+            const completedCount = queue.filter(e => e.status === 'completed').length;
+            const overallProgress = queue.length > 0 ? (completedCount / queue.length) * 100 : 0;
+
+            return (
+                <div className="page">
+                    <div className="row row-2" style={{ alignItems: 'start' }}>
+
+                        {/* --- Left: Queue Builder --- */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div className="panel">
+                                <div className="panel-header"><h2>Queue Builder</h2></div>
+
+                                <div className="form-group">
+                                    <label>Scenario</label>
+                                    <div className="scenario-grid">
+                                        {SCENARIO_ORDER.map(sc => (
+                                            <button key={sc} className={`scenario-btn ${selectedScenario === sc ? 'active' : ''}`}
+                                                onClick={() => setSelectedScenario(sc)} title={SCENARIO_CONFIGS[sc].description}>
+                                                {sc}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {selectedScenario && (
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: 4 }}>
+                                            {SCENARIO_CONFIGS[selectedScenario].description}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Load (msg/s)</label>
+                                    <div className="rate-selector">
+                                        {RATE_ORDER.map(r => (
+                                            <button key={r} className={`rate-btn ${selectedRate === r ? 'active' : ''}`}
+                                                onClick={() => setSelectedRate(r)}>{r} msg/s</button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Warmup (min)</label>
+                                        <input type="number" min="1" value={warmupMin} onChange={e => setWarmupMin(+e.target.value)} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Experiment (min)</label>
+                                        <input type="number" min="1" value={expMin} onChange={e => setExpMin(+e.target.value)} />
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Repetitions</label>
+                                        <input type="number" min="1" value={reps} onChange={e => setReps(+e.target.value)} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Cooldown (min)</label>
+                                        <input type="number" min="0" value={cooldownMin} onChange={e => setCooldownMin(+e.target.value)} />
+                                    </div>
+                                </div>
+
+                                <div className="btn-group">
+                                    <button className="btn-primary" onClick={handleAddToQueue} disabled={isRunning || isApiLoading || !selectedScenario}>
+                                        + Add {selectedScenario}_{selectedRate}rps
+                                    </button>
+                                    <button className="btn-secondary" onClick={handleGenerateMatrix} disabled={isRunning || isApiLoading}
+                                        title="Generate all 21 combinations (7 scenarios × 3 rates)">
+                                        Generate Full Matrix
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Controls */}
+                            <div className="panel">
+                                <div className="panel-header"><h2>Controls</h2>
+                                    <span className={`status-inline ${isRunning ? 'running' : isCompleted ? 'running' : 'idle'}`}>
+                                        {s?.status || 'idle'}
+                                    </span>
+                                </div>
+                                <div className="btn-group">
+                                    <button className="btn-success" onClick={handleStart}
+                                        disabled={isRunning || isApiLoading || pendingCount === 0}>
+                                        Start ({pendingCount} pending)
+                                    </button>
+                                    <button className="btn-danger" onClick={handleStop}
+                                        disabled={!isRunning || isApiLoading}>
+                                        Stop
+                                    </button>
+                                    <button className="btn-warning" onClick={handleSkip}
+                                        disabled={!isRunning || isApiLoading} title="Skip current experiment">
+                                        Skip
+                                    </button>
+                                    <button className="btn-secondary" onClick={handleReset}
+                                        disabled={isRunning || isApiLoading}>
+                                        Reset
+                                    </button>
+                                    {!isRunning && queue.length > 0 && (
+                                        <button className="btn-secondary" onClick={handleClearQueue} disabled={isApiLoading}>
+                                            Clear Queue
+                                        </button>
+                                    )}
+                                </div>
+
+                                {isError && s.error && (
+                                    <div className="alert alert-error" style={{ marginTop: '1rem' }}>
+                                        <strong>Error:</strong> {s.error.reason}
+                                    </div>
+                                )}
+                                {isCompleted && (
+                                    <div className="alert alert-success" style={{ marginTop: '1rem' }}>
+                                        All experiments completed! ({completedCount}/{queue.length})
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* --- Right: Queue + Progress --- */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+                            {/* Live Progress (when running) */}
+                            {isRunning && s.currentPhase && (
+                                <div className="progress-card">
+                                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                            {phaseLabel[s.currentPhase] || s.currentPhase}
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                                            Exp {(s.currentExperimentIndex || 0) + 1}/{queue.length} &middot; Run {s.currentRunIndex}/{(queue[s.currentExperimentIndex] || {}).repetitions || '?'}
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: '0.95rem', fontWeight: 700, color: phaseColor[s.currentPhase] || 'var(--color-primary)', marginBottom: 4 }}>
+                                        {queue[s.currentExperimentIndex]?.label || '—'} _r{s.currentRunIndex}
+                                    </div>
+                                    <div className="progress-bar-track">
+                                        <div className="progress-bar-fill" style={{ width: (s.phaseProgress?.percent || 0) + '%', background: phaseColor[s.currentPhase] || 'var(--color-primary)' }}></div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '1.5rem' }}>
+                                        <div>
+                                            <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>Remaining</div>
+                                            <div className="countdown">{formatCountdown(s.phaseProgress?.remaining_seconds || 0)}</div>
+                                        </div>
+                                        <div className="progress-meta">
+                                            <span>Phase: <strong>{s.phaseDurationMinutes} min</strong></span>
+                                            <span>Total elapsed: <strong>{formatCountdown(s.elapsed_seconds || 0)}</strong></span>
+                                            {eta && <span>ETA: <strong>{eta.toLocaleTimeString()}</strong></span>}
+                                        </div>
+                                    </div>
+                                    {/* Overall progress */}
+                                    <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                                        Overall: {completedCount}/{queue.length} experiments
+                                        <div className="progress-bar-track" style={{ marginTop: 4, marginBottom: 0 }}>
+                                            <div className="progress-bar-fill" style={{ width: overallProgress + '%', background: '#94a3b8' }}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Queue List */}
+                            <div className="panel">
+                                <div className="panel-header">
+                                    <h2>Queue ({queue.length})</h2>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                                        {completedCount} done &middot; {pendingCount} pending
+                                    </div>
+                                </div>
+                                {queue.length === 0 ? (
+                                    <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem', textAlign: 'center', padding: '2rem' }}>
+                                        Queue is empty. Add experiments or use "Generate Full Matrix".
+                                    </div>
+                                ) : (
+                                    <div className="queue-list">
+                                        {queue.map((item, i) => (
+                                            <QueueItem
+                                                key={item.id}
+                                                item={item}
+                                                isCurrent={i === s?.currentExperimentIndex}
+                                                currentRun={i === s?.currentExperimentIndex ? s?.currentRunIndex : null}
+                                                onDelete={!isRunning ? handleDeleteItem : null}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ===================== DASHBOARD PAGE =====================
+        function DashboardPage({ isSimulatorRunning, isApiLoading, isConfigLoading, health,
+            numSensors, setNumSensors, mps, setMps,
+            batchingStrategy, setBatchingStrategy, batchSize, setBatchSize, batchTime, setBatchTime,
+            handleSimulatorConfigUpdate, handleStart, handleStop,
+            handleMiddlewareConfigUpdate,
+            schedulerStatus,
+            throughputCanvasRef, latencyCanvasRef, pipelineCanvasRef }) {
+
+            const schedulerRunning = schedulerStatus && schedulerStatus.status === 'running';
+            const simControlsDisabled = isSimulatorRunning || isConfigLoading || isApiLoading || schedulerRunning;
+            const mwControlsDisabled = isConfigLoading || isApiLoading;
+
+            return (
+                <div className="page">
+                    <div className="row row-2">
+                        {/* Simulator Panel */}
+                        <div className="panel">
+                            <div className="panel-header">
+                                <h2>Load Simulator</h2>
+                                <span className={`status-inline ${isSimulatorRunning ? 'running' : 'stopped'}`}>
+                                    {isSimulatorRunning ? 'Running' : 'Stopped'}
+                                </span>
+                            </div>
+                            {schedulerRunning && (
+                                <div style={{ fontSize: '0.8rem', color: 'var(--color-warning)', marginBottom: '0.75rem', fontWeight: 500 }}>
+                                    Controlled by scheduler
+                                </div>
+                            )}
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Number of Sensors</label>
+                                    <input type="number" value={numSensors} onChange={e => setNumSensors(e.target.value)} disabled={simControlsDisabled} />
+                                </div>
+                                <div className="form-group">
+                                    <label>Messages/s per Sensor</label>
+                                    <input type="number" step="0.1" value={mps} onChange={e => setMps(e.target.value)} disabled={simControlsDisabled} />
+                                </div>
+                            </div>
+                            <div className="btn-group">
+                                <button className="btn-primary" onClick={handleSimulatorConfigUpdate} disabled={simControlsDisabled}>Update Config</button>
+                                <button className="btn-success" onClick={handleStart} disabled={simControlsDisabled}>Start</button>
+                                <button className="btn-danger" onClick={handleStop} disabled={!isSimulatorRunning || isApiLoading || schedulerRunning}>Stop</button>
+                            </div>
+                        </div>
+
+                        {/* Middleware Panel */}
+                        <div className="panel">
+                            <div className="panel-header">
+                                <h2>Middleware Aggregation</h2>
+                                <span className={`status-inline ${health.middleware ? 'running' : 'stopped'}`}>
+                                    {health.middleware ? 'Connected' : 'Unreachable'}
+                                </span>
+                            </div>
+                            <div className="form-group">
+                                <label>Batching Strategy</label>
+                                <select value={batchingStrategy} onChange={e => setBatchingStrategy(e.target.value)} disabled={mwControlsDisabled}>
+                                    <option value="volume">Volume-Based</option>
+                                    <option value="time">Time-Based</option>
+                                    <option value="none">No Batching (1:1)</option>
+                                </select>
+                            </div>
+                            {batchingStrategy === 'volume' && (
+                                <div className="form-group">
+                                    <label>Batch Size Limit (Records)</label>
+                                    <input type="number" value={batchSize} onChange={e => setBatchSize(e.target.value)} disabled={mwControlsDisabled} />
+                                </div>
+                            )}
+                            {batchingStrategy === 'time' && (
+                                <div className="form-group">
+                                    <label>Batch Time Limit (Seconds)</label>
+                                    <input type="number" value={batchTime} onChange={e => setBatchTime(e.target.value)} disabled={mwControlsDisabled} />
+                                </div>
+                            )}
+                            <div className="btn-group">
+                                <button className="btn-primary" onClick={handleMiddlewareConfigUpdate} disabled={mwControlsDisabled}>Update Config</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Charts */}
+                    <div className="row row-3">
+                        <MetricsChart title="Throughput" chartRef={throughputCanvasRef} />
+                        <MetricsChart title="Processing Latency" chartRef={latencyCanvasRef} />
+                        <MetricsChart title="Pipeline Status" chartRef={pipelineCanvasRef} />
+                    </div>
+                </div>
+            );
+        }
+
+        // ===================== RECORDS PAGE =====================
+        function RecordsPage({ records, isApiLoading, fetchRecords, autoRefresh, setAutoRefresh, refreshInterval, setRefreshInterval, handleViewIpfs, handleApiCall, addNotification }) {
+            const [currentPage, setCurrentPage] = useState(1);
+            const [isGeneratingPlots, setIsGeneratingPlots] = useState(false);
+            const RECORDS_PER_PAGE = 10;
+
+            const handleGeneratePlots = async () => {
+                setIsGeneratingPlots(true);
+                try {
+                    const res = await fetch(`${API_URL}/api/middleware/generate-plots`, { method: 'POST' });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        addNotification(`Plots generated: ${(data.files || []).join(', ')}`, 'success');
+                    } else {
+                        addNotification(`Plot generation failed: ${data.stderr?.slice(0, 100) || 'unknown error'}`, 'error');
+                    }
+                } catch (e) {
+                    addNotification(`Plot generation error: ${e.message}`, 'error');
+                } finally {
+                    setIsGeneratingPlots(false);
+                }
+            };
+
+            const downloadFile = (filename) => {
+                const link = document.createElement('a');
+                link.href = `${API_URL}/api/middleware/experiment-data/${filename}`;
+                link.download = filename;
+                link.click();
+            };
+
+
+            return (
+                <div className="page">
+                    {/* CSV + Plot Downloads */}
+                    <div className="panel">
+                        <div className="panel-header"><h2>Experiment Data</h2></div>
+
+                        {/* Generate action bar */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: 'var(--color-primary-bg)', border: '1px solid #c7d2fe', borderRadius: 'var(--radius)', marginBottom: '1.25rem' }}>
+                            <div>
+                                <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-primary)' }}>Generate Analysis Plots</div>
+                                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>Runs the plot script on the server to (re)generate all PDFs from current CSV data.</div>
+                            </div>
+                            <button className="btn-primary" onClick={handleGeneratePlots} disabled={isGeneratingPlots} style={{ flexShrink: 0, marginLeft: '1.5rem' }}>
+                                {isGeneratingPlots
+                                    ? <><div className="spinner spinner-light" style={{width:12,height:12,borderWidth:1.5}}></div> Generating…</>
+                                    : '▶ Generate Plots'}
+                            </button>
+                        </div>
+
+                        {/* Download sections */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
+
+                            {/* Raw CSV */}
+                            <div>
+                                <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-secondary)', marginBottom: 8 }}>Raw Data</div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <button className="btn-secondary btn-sm" onClick={() => downloadFile('batch_metrics.csv')}>batch_metrics.csv</button>
+                                    <button className="btn-secondary btn-sm" onClick={() => downloadFile('e2e_metrics.csv')}>e2e_metrics.csv</button>
+                                </div>
+                            </div>
+
+                            {/* FF1 PDFs */}
+                            <div>
+                                <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-secondary)', marginBottom: 8 }}>FF1 — Scalability &amp; Efficiency</div>
+                                <div className="btn-group" style={{ flexWrap: 'wrap' }}>
+                                    {[
+                                        ['ff1_cpu_vs_load.pdf',     'CPU vs Load'],
+                                        ['ff1_ram_vs_load.pdf',     'RAM vs Load'],
+                                        ['ff1_tx_comparison.pdf',   'TX Comparison'],
+                                        ['ff1_batch_duration.pdf',  'Batch Duration'],
+                                        ['ff1_chain_duration.pdf',  'Chain Duration'],
+                                        ['ff1_ipfs_duration.pdf',   'IPFS Duration'],
+                                    ].map(([f, label]) => (
+                                        <button key={f} className="btn-secondary btn-sm" onClick={() => downloadFile(f)}>{label}</button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* FF2 PDFs */}
+                            <div>
+                                <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-text-secondary)', marginBottom: 8 }}>FF2 — Latency (TTF)</div>
+                                <div className="btn-group" style={{ flexWrap: 'wrap' }}>
+                                    {[
+                                        ['ff2_e2e_finality.pdf', 'E2E Finality'],
+                                        ['ff2_propagation.pdf',  'Propagation Delay'],
+                                    ].map(([f, label]) => (
+                                        <button key={f} className="btn-secondary btn-sm" onClick={() => downloadFile(f)}>{label}</button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Records Table */}
+                    <div className="panel">
+                        <div className="panel-header">
+                            <h2>Anchored Data Records ({records.length})</h2>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem', marginBottom: 0, textTransform: 'none', letterSpacing: 'normal', cursor: 'pointer' }}>
+                                    <input type="checkbox" checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} style={{ width: 'auto' }} /> Auto
+                                </label>
+                                {autoRefresh && (
+                                    <select value={refreshInterval} onChange={e => setRefreshInterval(+e.target.value)} style={{ width: 'auto', padding: '4px 6px', fontSize: '0.75rem' }}>
+                                        <option value={10}>10s</option>
+                                        <option value={30}>30s</option>
+                                        <option value={60}>60s</option>
+                                    </select>
+                                )}
+                                <button className="btn-secondary btn-sm" onClick={fetchRecords} disabled={isApiLoading}>
+                                    {isApiLoading ? <><div className="spinner spinner-light" style={{width:12,height:12,borderWidth:1.5}}></div> Refreshing</> : 'Refresh'}
+                                </button>
+                            </div>
+                        </div>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>#</th><th>Block</th><th>Timestamp</th>
+                                        <th>Doc ID</th><th>IPFS CID</th><th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {records.length > 0 ? records.slice((currentPage - 1) * RECORDS_PER_PAGE, currentPage * RECORDS_PER_PAGE).map((r, idx) => (
+                                        <tr key={r.docId + r.timestamp}>
+                                            <td style={{ color: 'var(--color-text-secondary)' }}>{(currentPage - 1) * RECORDS_PER_PAGE + idx + 1}</td>
+                                            <td>{r.blockNumber?.toLocaleString()}</td>
+                                            <td>{new Date(r.timestamp * 1000).toLocaleString()}</td>
+                                            <td title={r.docId}><code>{typeof r.docId === 'string' ? r.docId.substring(0, 16) + '...' : r.docId}</code></td>
+                                            <td title={r.ipfsDigest}><code>{r.ipfsDigest.substring(0, 16)}...</code></td>
+                                            <td>
+                                                <div style={{ display: 'flex', gap: 4 }}>
+                                                    <button className="btn-primary btn-sm" onClick={() => handleViewIpfs(r.ipfsDigest)}>View</button>
+                                                    <button className="btn-secondary btn-sm" onClick={() => navigator.clipboard.writeText(r.ipfsDigest)}>Copy CID</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr><td colSpan="6" style={{ textAlign: 'center', color: 'var(--color-text-secondary)', padding: '2rem' }}>
+                                            {isApiLoading ? <><div className="spinner" style={{marginRight:8}}></div> Loading records...</> : 'No anchored records found.'}
+                                        </td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        {records.length > RECORDS_PER_PAGE && (
+                            <div className="pagination">
+                                <button className="btn-secondary btn-sm" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage <= 1}>Previous</button>
+                                <span>Page {currentPage} of {Math.ceil(records.length / RECORDS_PER_PAGE)}</span>
+                                <button className="btn-secondary btn-sm" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage >= Math.ceil(records.length / RECORDS_PER_PAGE)}>Next</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // ===================== LOGS PAGE =====================
+        function LogsPage({ logs, onClear }) {
+            return (
+                <div className="page">
+                    <div className="panel">
+                        <LogPanel logs={logs} onClear={onClear} fullHeight={true} />
+                    </div>
+                </div>
+            );
+        }
+
+        // ===================== APP =====================
+        function App() {
+            const route = useHashRouter();
+
+            // --- Global State ---
+            const [health, setHealth] = useState({});
+            const [status, setStatus] = useState(null);
+            const [records, setRecords] = useState([]);
+            const [logs, setLogs] = useState([]);
+            const [notifications, setNotifications] = useState([]);
+            const [numSensors, setNumSensors] = useState('');
+            const [mps, setMps] = useState('');
+            const [batchingStrategy, setBatchingStrategy] = useState('volume');
+            const [batchSize, setBatchSize] = useState('');
+            const [batchTime, setBatchTime] = useState('');
+            const [modalContent, setModalContent] = useState(null);
+            const [isApiLoading, setIsApiLoading] = useState(false);
+            const [isConfigLoading, setIsConfigLoading] = useState(true);
+            const [isSimulatorRunning, setIsSimulatorRunning] = useState(false);
+            const [schedulerStatus, setSchedulerStatus] = useState(null);
+            const [autoRefresh, setAutoRefresh] = useState(false);
+            const [refreshInterval, setRefreshInterval] = useState(30);
+
+            // --- Metrics state ---
+            const prevMetrics = useRef(null);
+
+            // --- Chart refs ---
+            const throughputCanvasRef = useRef(null);
+            const latencyCanvasRef = useRef(null);
+            const pipelineCanvasRef = useRef(null);
+            const throughputChart = useRef(null);
+            const latencyChart = useRef(null);
+            const pipelineChart = useRef(null);
+
+            // --- Helpers ---
+            const addNotification = useCallback((message, type = 'success') => {
+                const id = Date.now() + Math.random();
+                setNotifications(prev => [...prev, { id, message, type }]);
+            }, []);
+            const dismissNotification = (id) => setNotifications(prev => prev.filter(n => n.id !== id));
+            const addLog = useCallback((log) => setLogs(prev => [...prev.slice(-300), log]), []);
+            const handleClearLogs = () => setLogs([]);
+            const handleError = useCallback((error, userMessage) => {
+                const message = userMessage || error.message;
+                addNotification(message, 'error');
+                addLog({ timestamp: new Date().toISOString(), level: 'ERROR', message });
+            }, [addLog, addNotification]);
+
+            const handleApiCall = useCallback(async ({ endpoint, options = {}, successMessage, errorMessage, onComplete }) => {
+                setIsApiLoading(true);
+                try {
+                    const res = await fetch(`${API_URL}${endpoint}`, options);
+                    if (!res.ok) {
+                        let errorMsg = `HTTP ${res.status}: ${res.statusText}`;
+                        try { const d = await res.json(); errorMsg = d.error || errorMsg; } catch {}
+                        throw new Error(errorMsg);
+                    }
+                    const text = await res.text();
+                    const data = text ? JSON.parse(text) : {};
+                    if (successMessage) addNotification(successMessage);
+                    if (onComplete) onComplete(data);
+                    return data;
+                } catch (e) {
+                    handleError(e, errorMessage);
+                } finally {
+                    setIsApiLoading(false);
+                }
+            }, [handleError, addNotification]);
+
+            // --- Fetches ---
+            const fetchRecords = useCallback(() => handleApiCall({
+                endpoint: '/api/records',
+                onComplete: data => { if (data) { setRecords(data); } }
+            }), [handleApiCall]);
+
+            const fetchInitialData = useCallback(async () => {
+                setIsConfigLoading(true);
+                await Promise.all([
+                    handleApiCall({ endpoint: '/api/simulator/status', onComplete: data => {
+                        if (data) { setStatus(data); setIsSimulatorRunning(data.is_running); setNumSensors(data.config.num_sensors); setMps(data.config.messages_per_second); }
+                    }}),
+                    handleApiCall({ endpoint: '/api/middleware/config', onComplete: data => {
+                        if (data) { setBatchingStrategy(data.batching_strategy); setBatchSize(data.batch_size_limit); setBatchTime(data.batch_time_limit); }
+                    }}),
+                ]);
+                setIsConfigLoading(false);
+            }, [handleApiCall]);
+
+            // --- WebSocket ---
+            useEffect(() => {
+                let ws;
+                const connect = () => {
+                    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    ws = new WebSocket(`${proto}//${window.location.host}`);
+                    ws.onopen = () => addLog({ timestamp: new Date().toISOString(), level: 'INFO', message: 'Log stream connected.' });
+                    ws.onmessage = (event) => { try { addLog(JSON.parse(event.data)); } catch {} };
+                    ws.onclose = () => { addLog({ timestamp: new Date().toISOString(), level: 'WARN', message: 'Log stream disconnected. Reconnecting...' }); setTimeout(connect, 5000); };
+                    ws.onerror = () => ws.close();
+                };
+                connect();
+                return () => { if (ws) ws.close(); };
+            }, [addLog]);
+
+            // --- Initial load ---
+            useEffect(() => {
+                fetchInitialData();
+                fetchRecords();
+            }, [fetchInitialData, fetchRecords]);
+
+            // Simulator status poll
+            useEffect(() => {
+                const id = setInterval(() => {
+                    handleApiCall({ endpoint: '/api/simulator/status', onComplete: data => { if (data) setIsSimulatorRunning(data.is_running); } });
+                }, 5000);
+                return () => clearInterval(id);
+            }, [handleApiCall]);
+
+            // Health poll
+            useEffect(() => {
+                const poll = () => fetch(`${API_URL}/api/health`).then(r => r.json()).then(setHealth).catch(() => {});
+                poll();
+                const id = setInterval(poll, 15000);
+                return () => clearInterval(id);
+            }, []);
+
+            // Scheduler poll
+            useEffect(() => {
+                const poll = () => fetch(`${API_URL}/api/scheduler/status`).then(r => r.json()).then(s => {
+                    setSchedulerStatus(s);
+                    if (s.status === 'running') setIsSimulatorRunning(true);
+                }).catch(() => {});
+                poll();
+                const id = setInterval(poll, 2000);
+                return () => clearInterval(id);
+            }, []);
+
+            // Auto-refresh records
+            useEffect(() => {
+                if (!autoRefresh) return;
+                const id = setInterval(fetchRecords, refreshInterval * 1000);
+                return () => clearInterval(id);
+            }, [autoRefresh, refreshInterval, fetchRecords]);
+
+            // Metrics polling + chart updates
+            useEffect(() => {
+                const id = setInterval(async () => {
+                    try {
+                        const [simRes, mwRes] = await Promise.all([
+                            fetch(`${API_URL}/api/metrics/simulator`).then(r => r.json()),
+                            fetch(`${API_URL}/api/metrics/middleware`).then(r => r.json()),
+                        ]);
+                        const now = new Date();
+                        const prev = prevMetrics.current;
+                        const dt = prev ? (now - prev.time) / 1000 : 1;
+                        const point = {
+                            time: now,
+                            label: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                            throughput: prev ? Math.max(0, (simRes.requests_sent_total - prev.raw.sent) / dt) : 0,
+                            errors: prev ? Math.max(0, (simRes.request_errors_total - prev.raw.errors) / dt) : 0,
+                            bufferSize: mwRes.buffer_size || 0,
+                            queueSize: mwRes.ingest_queue_size || 0,
+                            batchesProcessed: mwRes.batches_processed_total || 0,
+                            batchesFailed: mwRes.batches_failed_total || 0,
+                            avgIpfs: mwRes.ipfs_upload_seconds?.count > 0 ? (mwRes.ipfs_upload_seconds.sum / mwRes.ipfs_upload_seconds.count) * 1000 : 0,
+                            avgChain: mwRes.chain_anchor_seconds?.count > 0 ? (mwRes.chain_anchor_seconds.sum / mwRes.chain_anchor_seconds.count) * 1000 : 0,
+                            avgE2e: mwRes.e2e_finality_seconds?.count > 0 ? (mwRes.e2e_finality_seconds.sum / mwRes.e2e_finality_seconds.count) * 1000 : 0,
+                        };
+                        prevMetrics.current = { time: now, raw: { sent: simRes.requests_sent_total, errors: simRes.request_errors_total } };
+                        updateCharts(point);
+                    } catch {}
+                }, 2000);
+                return () => clearInterval(id);
+            }, []);
+
+            // Chart initialization
+            useEffect(() => {
+                if (!throughputCanvasRef.current) return;
+                const commonOpts = {
+                    responsive: true, maintainAspectRatio: false, animation: false,
+                    scales: { x: { display: true, ticks: { maxTicksLimit: 8, font: { size: 10 } } }, y: { beginAtZero: true, ticks: { font: { size: 10 } } } },
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    elements: { point: { radius: 0 }, line: { tension: 0.3, borderWidth: 2 } },
+                };
+                throughputChart.current = new Chart(throughputCanvasRef.current, {
+                    type: 'line', data: { labels: [], datasets: [
+                        { label: 'Messages/s', data: [], borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true },
+                        { label: 'Errors/s', data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true },
+                    ]}, options: { ...commonOpts, scales: { ...commonOpts.scales, y: { ...commonOpts.scales.y, title: { display: true, text: 'msg/s', font: { size: 10 } } } } },
+                });
+                latencyChart.current = new Chart(latencyCanvasRef.current, {
+                    type: 'line', data: { labels: [], datasets: [
+                        { label: 'IPFS Upload', data: [], borderColor: '#14b8a6' },
+                        { label: 'Chain Anchor', data: [], borderColor: '#f59e0b' },
+                        { label: 'E2E Finality', data: [], borderColor: '#8b5cf6' },
+                    ]}, options: { ...commonOpts, scales: { ...commonOpts.scales, y: { ...commonOpts.scales.y, title: { display: true, text: 'ms (avg)', font: { size: 10 } } } } },
+                });
+                pipelineChart.current = new Chart(pipelineCanvasRef.current, {
+                    type: 'bar', data: { labels: ['Buffer', 'Queue', 'Processed', 'Failed'], datasets: [
+                        { label: 'Count', data: [0, 0, 0, 0], backgroundColor: ['#6366f1', '#818cf8', '#22c55e', '#ef4444'], borderRadius: 4 },
+                    ]}, options: { ...commonOpts, plugins: { ...commonOpts.plugins, legend: { display: false } } },
+                });
+                return () => {
+                    throughputChart.current?.destroy();
+                    latencyChart.current?.destroy();
+                    pipelineChart.current?.destroy();
+                };
+            }, []);
+
+            // Incremental chart update (avoid full history)
+            const chartLabels = useRef([]);
+            const updateCharts = (point) => {
+                if (!throughputChart.current) return;
+                chartLabels.current = [...chartLabels.current.slice(-59), point.label];
+                const labels = chartLabels.current;
+
+                const tc = throughputChart.current;
+                tc.data.labels = labels;
+                tc.data.datasets[0].data = [...(tc.data.datasets[0].data || []).slice(-59), +point.throughput.toFixed(1)];
+                tc.data.datasets[1].data = [...(tc.data.datasets[1].data || []).slice(-59), +point.errors.toFixed(1)];
+                tc.update('none');
+
+                const lc = latencyChart.current;
+                lc.data.labels = labels;
+                lc.data.datasets[0].data = [...(lc.data.datasets[0].data || []).slice(-59), +point.avgIpfs.toFixed(1)];
+                lc.data.datasets[1].data = [...(lc.data.datasets[1].data || []).slice(-59), +point.avgChain.toFixed(1)];
+                lc.data.datasets[2].data = [...(lc.data.datasets[2].data || []).slice(-59), +point.avgE2e.toFixed(1)];
+                lc.update('none');
+
+                if (pipelineChart.current) {
+                    pipelineChart.current.data.datasets[0].data = [point.bufferSize, point.queueSize, point.batchesProcessed, point.batchesFailed];
+                    pipelineChart.current.update('none');
+                }
+            };
+
+            // --- Handlers ---
+            const handleSimulatorConfigUpdate = () => handleApiCall({
+                endpoint: '/api/simulator/config',
+                options: { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ num_sensors: parseInt(numSensors, 10), messages_per_second: parseFloat(mps) }) },
+                successMessage: 'Simulator config updated!',
+            });
+            const handleMiddlewareConfigUpdate = () => {
+                const body = { batching_strategy: batchingStrategy };
+                if (batchingStrategy === 'volume') body.batch_size_limit = parseInt(batchSize, 10);
+                if (batchingStrategy === 'time') body.batch_time_limit = parseInt(batchTime, 10);
+                handleApiCall({
+                    endpoint: '/api/middleware/config',
+                    options: { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+                    successMessage: 'Middleware config updated!',
+                    onComplete: data => { if (data?.new_config) { setBatchingStrategy(data.new_config.batching_strategy); setBatchSize(data.new_config.batch_size_limit); setBatchTime(data.new_config.batch_time_limit); } }
+                });
+            };
+            const handleStart = () => handleApiCall({ endpoint: '/api/simulator/start', options: { method: 'POST' }, successMessage: 'Simulator started!' });
+            const handleStop = () => handleApiCall({ endpoint: '/api/simulator/stop', options: { method: 'POST' }, successMessage: 'Simulator stopped!' });
+
+            const handleViewIpfs = async (hash) => {
+                setModalContent({ type: 'loading', hash });
+                try {
+                    const res = await fetch(`${API_URL}/api/ipfs/${hash}`);
+                    if (!res.ok) throw new Error('IPFS content not found.');
+                    const text = await res.text();
+                    setModalContent({ type: 'data', content: text, hash });
+                } catch (e) {
+                    setModalContent({ type: 'error', error: e.message, hash });
+                }
+            };
+
+            const TABS = [
+                { id: 'scheduler', label: 'Scheduler' },
+                { id: 'dashboard', label: 'Dashboard' },
+                { id: 'records', label: 'Records' },
+                { id: 'logs', label: 'Logs' },
+            ];
+
+            return (
+                <div>
+                    <Notifications notifications={notifications} onDismiss={dismissNotification} />
+
+                    <header className="dashboard-header">
+                        <h1>Thesis Traceability Dashboard</h1>
+                        <StatusBar health={health} />
+                    </header>
+
+                    <nav className="nav-tabs-bar">
+                        {TABS.map(tab => (
+                            <a key={tab.id} href={`#/${tab.id}`}
+                               className={`nav-tab ${route === tab.id ? 'active' : ''}`}
+                               style={{ textDecoration: 'none' }}>
+                                {tab.label}
+                                {tab.id === 'scheduler' && schedulerStatus?.status === 'running' && (
+                                    <span style={{ marginLeft: 6, width: 7, height: 7, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 4px #4ade80', display: 'inline-block', animation: 'qpulse 1s ease-in-out infinite' }}></span>
+                                )}
+                            </a>
+                        ))}
+                    </nav>
+
+                    {route === 'scheduler' && (
+                        <SchedulerPage
+                            schedulerStatus={schedulerStatus}
+                            handleApiCall={handleApiCall}
+                            isApiLoading={isApiLoading}
+                        />
+                    )}
+                    {route === 'dashboard' && (
+                        <DashboardPage
+                            isSimulatorRunning={isSimulatorRunning}
+                            isApiLoading={isApiLoading}
+                            isConfigLoading={isConfigLoading}
+                            health={health}
+                            numSensors={numSensors} setNumSensors={setNumSensors}
+                            mps={mps} setMps={setMps}
+                            batchingStrategy={batchingStrategy} setBatchingStrategy={setBatchingStrategy}
+                            batchSize={batchSize} setBatchSize={setBatchSize}
+                            batchTime={batchTime} setBatchTime={setBatchTime}
+                            handleSimulatorConfigUpdate={handleSimulatorConfigUpdate}
+                            handleStart={handleStart} handleStop={handleStop}
+                            handleMiddlewareConfigUpdate={handleMiddlewareConfigUpdate}
+                            schedulerStatus={schedulerStatus}
+                            throughputCanvasRef={throughputCanvasRef}
+                            latencyCanvasRef={latencyCanvasRef}
+                            pipelineCanvasRef={pipelineCanvasRef}
+                        />
+                    )}
+                    {route === 'records' && (
+                        <RecordsPage
+                            records={records}
+                            isApiLoading={isApiLoading}
+                            fetchRecords={fetchRecords}
+                            autoRefresh={autoRefresh} setAutoRefresh={setAutoRefresh}
+                            refreshInterval={refreshInterval} setRefreshInterval={setRefreshInterval}
+                            handleViewIpfs={handleViewIpfs}
+                            handleApiCall={handleApiCall}
+                            addNotification={addNotification}
+                        />
+                    )}
+                    {route === 'logs' && (
+                        <LogsPage logs={logs} onClear={handleClearLogs} />
+                    )}
+
+                    {modalContent && <Modal content={modalContent} onClose={() => setModalContent(null)} />}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

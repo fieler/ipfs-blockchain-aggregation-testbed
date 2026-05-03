@@ -1,0 +1,86 @@
+---
+- name: Hetzner Hosts
+  hosts: localhost
+  gather_facts: false
+  user: root
+  tasks:
+    - name: Create an ssh_key
+      hetzner.hcloud.ssh_key:
+        api_token: "{{ hcloud_token }}"
+        name: "{{ hcloud_ssh_key.name }}"
+        public_key: "{{ hcloud_ssh_key.key }}"
+        state: present
+
+    - name: Create a private network
+      hetzner.hcloud.hcloud_network:
+        api_token: "{{ hcloud_token }}"
+        name: iot-traffic
+        ip_range: 10.0.0.0/24
+        state: present
+
+    - name: Create the IoT traffic subnetwork
+      hetzner.hcloud.subnetwork:
+        api_token: "{{ hcloud_token }}"
+        network: iot-traffic
+        network_zone: eu-central
+        type: cloud
+        ip_range: 10.0.0.0/24
+        state: present
+
+    - name: Create Hetzner Cloud Control Node
+      hetzner.hcloud.server:
+        api_token: "{{ hcloud_token }}"
+        name: controlhost
+        server_type: ccx33
+        image: ubuntu-24.04
+        location: fsn1
+        enable_ipv4: true
+        private_networks:
+        - iot-traffic
+        ssh_keys:
+          - "{{ hcloud_ssh_key.name }}"
+        user_data: "{{ hcloud_user_data }}"
+        state: "{{ lookup('env', 'SERVER_STATE') | default('present') }}"
+        labels:
+          project: bachelor
+          role: control
+
+    - name: Create Hetzner Cloud Storage Nodes
+      hetzner.hcloud.server:
+        api_token: "{{ hcloud_token }}"
+        name: "{{ item.name }}"
+        server_type: "{{ item.type }}"
+        image: ubuntu-24.04
+        location: "{{ item.location }}"
+        enable_ipv4: true
+        ssh_keys:
+          - "{{ hcloud_ssh_key.name }}"
+        user_data: "{{ hcloud_user_data }}"
+        state: "{{ lookup('env', 'SERVER_STATE') | default('present') }}"
+        labels:
+          project: bachelor
+          role: storage
+      loop:
+        - { name: "datahost-fsn1-1", location: "fsn1", type: "cpx22" }
+        - { name: "datahost-fsn1-2", location: "fsn1", type: "cpx22" }
+        - { name: "datahost-usa-1", location: "ash", type: "cpx21" }
+        - { name: "datahost-usa-2", location: "hil", type: "cpx21" }
+        - { name: "datahost-asia-1", location: "sin", type: "cpx22" }
+
+    - name: Create Hetzner Cloud Gateway Node
+      hetzner.hcloud.server:
+        api_token: "{{ hcloud_token }}"
+        name: gateway
+        server_type: ccx23
+        image: ubuntu-24.04
+        location: fsn1
+        enable_ipv4: true
+        private_networks:
+        - iot-traffic
+        ssh_keys:
+          - "{{ hcloud_ssh_key.name }}"
+        user_data: "{{ hcloud_user_data }}"
+        state: "{{ lookup('env', 'SERVER_STATE') | default('present') }}"
+        labels:
+          project: bachelor
+          role: gateway

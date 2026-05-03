@@ -1,0 +1,10 @@
+---
+- name: Restart docker
+  ansible.builtin.service:
+    name: docker
+    state: "{{ docker_restart_handler_state }}"
+
+- name: Restart ufw
+  ansible.builtin.service:
+    name: ufw
+    state: "{{ docker_ufw_restart_handler_state }}"

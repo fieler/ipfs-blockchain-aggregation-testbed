@@ -1,0 +1,27 @@
+import { defineConfig } from "hardhat/config";
+import hardhatIgnitionEthers from "@nomicfoundation/hardhat-ignition-ethers";
+import hardhatEthers from "@nomicfoundation/hardhat-ethers";
+
+export default defineConfig({
+  plugins: [hardhatIgnitionEthers, hardhatEthers],
+  solidity: {
+    version: "0.8.19",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+      evmVersion: "paris",
+    },
+  },
+  paths: {
+    artifacts: "../artifacts"
+  },
+  networks: {
+    besu: {
+      url: "{{ rpc_url }}",
+      type: "http",
+      accounts: ["YOUR_ETHEREUM_PRIVATE_KEY_HERE"]
+    }
+  }
+});

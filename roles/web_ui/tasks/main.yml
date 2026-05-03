@@ -1,0 +1,63 @@
+---
+- name: Install Node.js and npm
+  ansible.builtin.apt:
+    name:
+      - nodejs
+    state: present
+    update_cache: yes
+
+- name: Ensure www-data user exists
+  ansible.builtin.user:
+    name: www-data
+    system: yes
+    state: present
+
+- name: Create web UI application directory
+  ansible.builtin.file:
+    path: /opt/thesis-ui
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Copy web UI application files
+  ansible.builtin.copy:
+    src: app/
+    dest: /opt/thesis-ui/
+    owner: www-data
+    group: www-data
+  notify: Restart thesis-ui service
+
+- name: Copy contract ABI
+  ansible.builtin.copy:
+    content: "{{ (lookup('file', '{{ playbook_dir }}/../.tmp_artifacts/ThesisTraceability.json') | from_json).abi | to_nice_json }}"
+    dest: /opt/thesis-ui/abi.json
+    owner: www-data
+    group: www-data
+    mode: '0644'
+  notify: Restart thesis-ui service
+
+- name: Install npm dependencies
+  community.general.npm:
+    path: /opt/thesis-ui
+    state: present
+
+- name: Template the systemd service file
+  ansible.builtin.template:
+    src: thesis-ui.service.j2
+    dest: /etc/systemd/system/thesis-ui.service
+    mode: '0644'
+  notify: Restart thesis-ui service
+
+- name: Allow Web UI Port
+  community.general.ufw:
+    rule: allow
+    port: "{{ web_ui_port | default(3000) }}"
+    proto: tcp
+
+- name: Ensure thesis-ui service is started and enabled
+  ansible.builtin.systemd:
+    name: thesis-ui
+    state: started
+    enabled: yes
+    daemon_reload: yes

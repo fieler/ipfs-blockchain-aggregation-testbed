@@ -1,0 +1,15 @@
+---
+- name: Deploy and Configure Web UI
+  hosts: hcloud_label_role_control
+  gather_facts: true
+  user: "{{ host_config.user_name }}"
+  become: true
+  vars:
+    web_ui_port: 3333
+    _deployed_address_content: "{{ lookup('file', '../.tmp_artifacts/deployed_addresses.json', errors='ignore') | default('{}', true) | from_json }}"
+    web_ui_contract_address: "{{ _deployed_address_content.values() | list | first | default('0x0000000000000000000000000000000000000000') }}"
+    web_ui_rpc_provider_url: "http://{{ hostvars[groups['hcloud_label_role_storage'][0]]['ansible_host'] }}:8545"
+    web_ui_ipfs_gateway_url: "http://{{ hostvars[groups['hcloud_label_role_storage'][0]]['ansible_host'] }}:8080/ipfs/"
+    web_ui_middleware_api_url: "http://{{ hostvars[groups['hcloud_label_role_gateway'][0]]['ansible_host'] }}:{{ middleware_port | default(8000) }}"
+  roles:
+    - role: web_ui

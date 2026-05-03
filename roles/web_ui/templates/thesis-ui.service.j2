@@ -1,0 +1,22 @@
+[Unit]
+Description=Thesis UI Backend Server
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/node /opt/thesis-ui/server.js
+WorkingDirectory=/opt/thesis-ui
+Restart=always
+# It's good practice to run services as a non-root user.
+# This user needs to be created on the system.
+User=www-data
+Group=www-data
+Environment=NODE_ENV=production
+Environment=PORT={{ web_ui_port | default(3000) }}
+Environment=CONTRACT_ADDRESS={{ web_ui_contract_address }}
+Environment=RPC_PROVIDER_URL={{ web_ui_rpc_provider_url | default('http://localhost:8545') }}
+Environment=IPFS_GATEWAY_URL={{ web_ui_ipfs_gateway_url | default('http://localhost:8080/ipfs/') }}
+Environment=SIMULATOR_API_URL={{ web_ui_simulator_api_url | default('http://localhost:9011') }}
+Environment=MIDDLEWARE_API_URL={{ web_ui_middleware_api_url | default('http://localhost:8000') }}
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,98 @@
+---
+- name: Install jq package
+  ansible.builtin.apt:
+    name: jq
+    state: present
+
+- name: Copy Smart Contract Artifacts from Buffer
+  copy:
+    src: "{{ playbook_dir }}/../.tmp_artifacts/ThesisTraceability.json"
+    dest: "{{ project_directory }}/ThesisTraceability.json"
+    mode: '0600'
+
+- name: Copy Genesis File
+  ansible.builtin.copy:
+    src: besu-genesis.json
+    dest: "{{ project_directory }}/besu-genesis.json"
+    mode: '0644'
+
+- name: Create Besu nodekey file
+  copy:
+    content: "{{ besu_enode_key }}"
+    dest: "{{ project_directory }}/besu_key"
+    mode: '0644'
+  when: "'datahost-fsn1-1' in inventory_hostname"
+
+- name: Ensure ipfs_data directory exists
+  file:
+    path: "{{ project_directory }}/ipfs_data"
+    state: directory
+    owner: "1000"
+    group: "100"
+    mode: '0755'
+
+- name: Check if IPFS config exists
+  stat:
+    path: "{{ project_directory }}/ipfs_data/config"
+  register: ipfs_conf_stat
+
+- name: Generate IPFS identity if missing
+  command: "docker run --rm -v {{ project_directory }}/ipfs_data:/data/ipfs ipfs/kubo:v0.39.0 id"
+  when: 
+    - ipfs_conf_stat.stat is defined
+    - not ipfs_conf_stat.stat.exists
+
+- name: Read current IPFS identity
+  shell: "cat {{ project_directory }}/ipfs_data/config | jq '.Identity'"
+  register: ipfs_identity_raw
+  changed_when: false
+
+- name: Set identity fact
+  set_fact:
+    ipfs_node_identity: "{{ ipfs_identity_raw.stdout | from_json }}"
+
+- name: Render IPFS Config from Template
+  template:
+    src: ipfs_config.j2
+    dest: "{{ project_directory }}/ipfs_data/config"
+    owner: "1000"
+    mode: '0644'
+
+- name: Copy swarm.key
+  copy:
+    src: "{{ playbook_dir }}/../.tmp_artifacts/swarm.key"
+    dest: "{{ project_directory }}/ipfs_data/swarm.key"
+    owner: "1000"
+    mode: "0400"
+
+- name: Render Docker Compose
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ project_directory }}/docker-compose.yml"
+
+- name: Allow Ports in UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+  loop: ['30303', '4001', '8545', '5001', '8080', '9545']
+
+- name: Reload UFW
+  community.general.ufw:
+    state: reloaded
+
+- name: Start Bootnode first
+  community.docker.docker_compose_v2:
+    project_src: "{{ project_directory }}"
+    state: present
+  when: inventory_hostname == 'datahost-fsn1-1'
+
+- name: Wait a few seconds for Bootnode to be ready
+  pause:
+    seconds: 10
+  when: inventory_hostname == 'datahost-fsn1-1'
+
+- name: Start all other nodes
+  community.docker.docker_compose_v2:
+    project_src: "{{ project_directory }}"
+    state: present
+  when: inventory_hostname != 'datahost-fsn1-1'

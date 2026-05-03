@@ -1,0 +1,5 @@
+---
+- name: Restart thesis-ui service
+  ansible.builtin.systemd:
+    name: thesis-ui
+    state: restarted

@@ -1,0 +1,48 @@
+---
+- name: Run basic configuration roles
+  hosts: hcloud_label_project_bachelor
+  gather_facts: true
+  user: "{{ host_config.user_name }}"
+  become: true
+  roles:
+    - role: basic
+    - role: docker
+  tasks:
+    - name: Flush handlers to apply daemon.json before deploying containers
+      meta: flush_handlers
+
+    - name: Deploy Node Exporter Container
+      community.docker.docker_container:
+        name: node-exporter
+        image: prom/node-exporter:v1.10.2
+        network_mode: host
+        restart_policy: always
+        command:
+          - '--path.rootfs=/host'
+        volumes:
+          - /:/host:ro,rslave
+
+    - name: Deploy cAdvisor Container
+      community.docker.docker_container:
+        image: gcr.io/cadvisor/cadvisor:no-new-use-public-image-v0.51.0
+        name: cadvisor
+        network_mode: host
+        command:
+        - '-port=8888'
+        volumes:
+          - /:/rootfs:ro
+          - /var/run:/var/run:ro
+          - /sys:/sys:ro
+          - /var/lib/docker/:/var/lib/docker:ro
+          - /dev/disk/:/dev/disk:ro
+          - /dev/kmsg:/dev/kmsg
+
+    - name: Allow Ports in UFW
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+      loop: ['9100', '8888']
+
+    - name: Reload UFW
+      community.general.ufw:
+        state: reloaded

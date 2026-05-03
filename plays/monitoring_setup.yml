@@ -1,0 +1,8 @@
+---
+- name: Deploy Monitoring Stack
+  hosts: hcloud_label_role_control
+  gather_facts: true
+  user: "{{ host_config.user_name }}"
+  become: true
+  roles:
+    - role: monitoring_stack

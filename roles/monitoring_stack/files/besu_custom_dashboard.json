@@ -1,0 +1,165 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "datasource", "uid": "grafana" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "NETWORK & SYNC STATUS",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "unit": "none" }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "title": "Current Block Height",
+      "targets": [
+        { "expr": "max(ethereum_blockchain_height)", "refId": "A" }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "fieldConfig": {
+        "defaults": { 
+          "color": { "mode": "thresholds" }, 
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 4 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "id": 2,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "title": "Avg. Peers per Node",
+      "targets": [
+        { "expr": "avg(ethereum_peer_count)", "refId": "A" }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 1 },
+      "id": 3,
+      "title": "Blockchain Height Progress",
+      "targets": [
+        { "expr": "ethereum_blockchain_height", "legendFormat": "{{instance}}", "refId": "A" }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "TRANSACTION METRICS (FF1 & FF2)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "fieldConfig": {
+        "defaults": { "unit": "tps" }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 4,
+      "title": "Transaction Throughput (TPS)",
+      "targets": [
+        { 
+          "expr": "rate(besu_blockchain_chain_head_transaction_count_counter_total[1m])", 
+          "legendFormat": "Transactions / s", 
+          "refId": "A" 
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "id": 5,
+      "title": "Tx Pool Status (Pending)",
+      "targets": [
+        { 
+          "expr": "sum by (layer) (besu_transaction_pool_number_of_transactions)", 
+          "legendFormat": "Pool: {{layer}}", 
+          "refId": "A" 
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 102,
+      "title": "NODE PERFORMANCE & JVM HEALTH",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "fieldConfig": {
+        "defaults": { "unit": "decbytes" }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "id": 6,
+      "title": "JVM Heap Memory Usage",
+      "targets": [
+        { 
+          "expr": "jvm_memory_used_bytes{area=\"heap\"}", 
+          "legendFormat": "{{instance}}", 
+          "refId": "A" 
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit" }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "id": 7,
+      "title": "CPU Usage (Process)",
+      "targets": [
+        { 
+          "expr": "rate(process_cpu_seconds_total[1m])", 
+          "legendFormat": "{{instance}}", 
+          "refId": "A" 
+        }
+      ],
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["Bachelorarbeit", "Besu", "Blockchain"],
+  "time": { "from": "now-30m", "to": "now" },
+  "title": "Besu Blockchain Health & Performance",
+  "uid": "besu-master-diag",
+  "version": 1
+}

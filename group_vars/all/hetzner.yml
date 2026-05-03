@@ -1,0 +1,18 @@
+---
+# hcloud user data
+hcloud_token: YOUR_HCLOUD_API_TOKEN_HERE
+hcloud_ssh_key:
+  name: YOUR_SSH_KEY_NAME_HERE
+  key: YOUR_SSH_PUBLIC_KEY_HERE
+hcloud_user_data : |
+  #cloud-config
+  package_update: true
+  package_upgrade: true
+  runcmd:
+    - sed -i '/^PermitRootLogin/s/yes/no/' /etc/ssh/sshd_config
+    - sed -i '/^#Port/s/#Port 22/Port {{ host_config.ssh_port }}/' /etc/ssh/sshd_config
+    - systemctl daemon-reload
+    - systemctl restart ssh.socket
+    - systemctl restart ssh.service
+    - reboot
+

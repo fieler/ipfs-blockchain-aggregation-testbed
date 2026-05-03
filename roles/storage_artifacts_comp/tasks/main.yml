@@ -1,0 +1,87 @@
+---
+- name: Setup Node.js 24.14.0 LTS repository
+  ansible.builtin.get_url:
+    url: https://deb.nodesource.com/setup_24.x
+    dest: /tmp/nodesource_setup.sh
+    mode: '0755'
+
+- name: Execute Node.js setup script
+  ansible.builtin.command: /tmp/nodesource_setup.sh
+  args:
+    creates: /etc/apt/sources.list.d/nodesource.list
+
+- name: Install Build Dependencies
+  apt:
+    name: ["nodejs", "python3-venv", "python3-pip", "git", "build-essential"]
+    state: present
+    update_cache: yes
+
+- name: Create Build Directories
+  file:
+    path: "{{ project_directory }}/{{ item }}"
+    state: directory
+  with_items:
+    - "besu_contract"
+    - "besu_contract/contracts"
+    - "artifacts"
+
+- name: Generate IPFS Swarm Key
+  shell: |
+    echo "/key/swarm/psk/1.0.0/\n/base16/\n$(tr -dc 'a-f0-7' < /dev/urandom | head -c64)" > {{ project_directory }}/artifacts/swarm.key
+  args:
+    creates: "{{ project_directory }}/artifacts/swarm.key"
+
+- name: Initialize Hardhat Environment
+  npm:
+    name: "{{ item }}"
+    path: "{{ project_directory }}/besu_contract"
+    state: present
+  loop:
+    - hardhat
+    - "@nomicfoundation/hardhat-ignition"
+    - "@nomicfoundation/hardhat-ignition-ethers"
+    - "@nomicfoundation/hardhat-ethers"
+    - ethers
+    - typescript
+    - ts-node
+
+- name: Create Hardhat Config for deployment
+  template:
+    src: hardhat.config.ts.j2
+    dest: "{{ project_directory }}/besu_contract/hardhat.config.ts"
+  vars:
+    rpc_url: "http://{{ hostvars[groups['hcloud_label_role_storage'][0]]['ansible_host'] }}:8545"
+
+- name: Copy Contract File
+  ansible.builtin.copy:
+    src: Traceability.sol
+    dest: "{{ project_directory }}/besu_contract/contracts/Traceability.sol"
+    mode: '0644'
+
+- name: Configure package.json for ESM
+  ansible.builtin.command:
+    cmd: npm pkg set type=module
+  args:
+    chdir: "{{ project_directory }}/besu_contract"
+
+- name: Compile Smart Contracts
+  ansible.builtin.command:
+    cmd: npx hardhat compile
+  args:
+    chdir: "{{ project_directory }}/besu_contract"
+
+- name: Extract Compiled ABI to Artifacts
+  ansible.builtin.copy:
+    src: "{{ project_directory }}/artifacts/contracts/Traceability.sol/ThesisTraceability.json"
+    dest: "{{ project_directory }}/artifacts/ThesisTraceability.json"
+    remote_src: true
+    mode: '0644'
+
+- name: Fetch Artifacts to local Ansible Controller (Buffer)
+  fetch:
+    src: "{{ project_directory }}/artifacts/{{ item }}"
+    dest: "../.tmp_artifacts/"
+    flat: true
+  with_items:
+    - swarm.key
+    - ThesisTraceability.json

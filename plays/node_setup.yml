@@ -1,0 +1,24 @@
+---
+- name: Control Node Tasks
+  hosts: hcloud_label_role_control
+  gather_facts: true
+  user: "{{ host_config.user_name }}"
+  become: true
+  roles:
+    - role: storage_artifacts_comp
+    - role: monitoring_stack
+
+- name: Storage Node Setup
+  hosts: hcloud_label_role_storage
+  user: "{{ host_config.user_name }}"
+  become: true
+  roles:
+    - role: storage_node
+
+- name: Deploy contract
+  hosts: hcloud_label_role_control
+  gather_facts: true
+  user: "{{ host_config.user_name }}"
+  become: true
+  roles:
+    - role: hardhat_ignition

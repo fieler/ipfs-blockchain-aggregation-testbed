@@ -1,0 +1,33 @@
+---
+- name: Create simulator directory
+  ansible.builtin.file:
+    path: "{{ simulator_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Copy Simulator files
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ simulator_dir }}/{{ item }}"
+    mode: '0644'
+  with_items:
+    - simulator.py
+    - requirements.txt
+    - Dockerfile
+
+- name: Render Simulator Docker Compose
+  ansible.builtin.template:
+    src: docker-compose-simulator.yml.j2
+    dest: "{{ simulator_dir }}/docker-compose.yml"
+    mode: '0644'
+
+- name: Start Simulator
+  community.docker.docker_compose_v2:
+    project_src: "{{ simulator_dir }}"
+    state: present
+    build: always
+
+- name: Allow Simulator API Port
+  community.general.ufw:
+    rule: allow
+    port: 9011

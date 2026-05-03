@@ -1,0 +1,34 @@
+---
+# Ansible vars
+ansible_python_interpreter: /usr/bin/python3
+ansible_port: 38362
+
+# Default host config
+host_config:
+  ssh_port: "{{ ansible_port }}"
+  user_name: root
+
+# Docker users
+docker_users:
+  - name: docker_user
+    uid: 6000
+    group: docker_user
+    gid: 6000
+
+# Configuration
+project_directory: /opt/bacc
+middleware_dir: "{{ project_directory }}/middleware"
+simulator_dir: "{{ project_directory }}/simulator"
+monitoring_directory: /opt/monitoring
+# IMPORTANT: Change before deploying in any environment other than this research testbed.
+grafana_admin_password: YOUR_GRAFANA_PASSWORD_HERE
+
+# These are the fixed PoA authority key and bootnode ID for the private research network.
+# They are intentionally hardcoded here because all nodes are co-managed and the chain
+# has no real monetary value. Do NOT reuse these keys in any production or public chain.
+besu_enode_key: YOUR_BESU_ENODE_PRIVATE_KEY_HERE
+besu_bootnode_enode_id: 7c47f57976d30aec44b3a2f281cf77bee02da80144010b0931e69ed4fca803ed8496a903007f46ae6531b21237f62b96447176f70d9e89dd3174fbd0aa4c36ca
+
+# Service Ports and URLs
+middleware_port: 8000
+web_ui_middleware_api_url: "http://localhost:{{ middleware_port }}"

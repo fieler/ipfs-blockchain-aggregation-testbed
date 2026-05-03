@@ -1,0 +1,25 @@
+services:
+  middleware:
+    build: .
+    container_name: middleware
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+    environment:
+      - BESU_NODES={% for host in groups['hcloud_label_role_storage'] %}http://{{ hostvars[host]['ansible_host'] }}:8545{% if not loop.last %},{% endif %}{% endfor %}
+
+      - IPFS_NODES={% for host in groups['hcloud_label_role_storage'] %}http://{{ hostvars[host]['ansible_host'] }}:5001{% if not loop.last %},{% endif %}{% endfor %}
+      
+      - USE_ROUND_ROBIN=false
+      - CONTRACT_ADDRESS={{contract_address}}
+      - SENDER_ADDRESS=YOUR_SENDER_ADDRESS_HERE
+      - PRIVATE_KEY=YOUR_ETHEREUM_PRIVATE_KEY_HERE
+      - BATCH_SIZE_LIMIT=50
+      - BATCH_TIME_LIMIT=30
+      - CADVISOR_URL=http://localhost:8888
+    deploy:
+      resources:
+        limits:
+          cpus: '3.0'
+          memory: 5G

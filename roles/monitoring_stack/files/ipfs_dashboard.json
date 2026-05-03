@@ -1,0 +1,209 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "datasource", "uid": "grafana" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "CLUSTER DIAGNOSTICS (HEALTH CHECK)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "fieldConfig": {
+        "defaults": { 
+          "color": { "mode": "thresholds" }, 
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 5 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "id": 10,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "title": "IPFS Nodes Online",
+      "description": "Anzahl der IPFS-Instanzen, die Prometheus aktuell erreichen kann.",
+      "targets": [
+        { "expr": "sum(up{job=~\"ipfs.*\"})", "refId": "A" }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "fieldConfig": {
+        "defaults": { 
+          "color": { "mode": "thresholds" }, 
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 3 },
+              { "color": "green", "value": 4 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "id": 1,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "title": "Avg. Peers per Node",
+      "description": "Zielwert: 4 (bei 5 Nodes). Berechnet nun korrekt die Summe über alle Transporte pro Node.",
+      "targets": [
+        { "expr": "avg(sum by (instance) (ipfs_p2p_peers_total))", "refId": "A" }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 1 },
+      "id": 2,
+      "title": "Peer Count per Instance (Detailed)",
+      "targets": [
+        { "expr": "sum by (instance) (ipfs_p2p_peers_total)", "legendFormat": "{{instance}}", "refId": "A" }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "LATENCY & PERFORMANCE (FF2)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 3,
+      "options": { "legend": { "displayMode": "table" } },
+      "title": "HTTP API & Gateway Latency (Average)",
+      "targets": [
+        { 
+          "expr": "rate(ipfs_http_request_duration_seconds_sum[1m]) / rate(ipfs_http_request_duration_seconds_count[1m])", 
+          "legendFormat": "Handler: {{handler}}", 
+          "refId": "A" 
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "id": 4,
+      "title": "Datastore Write (Put) Latency",
+      "targets": [
+        { 
+          "expr": "rate(ipfs_fsrepo_datastore_put_latency_seconds_sum[1m]) / rate(ipfs_fsrepo_datastore_put_latency_seconds_count[1m])", 
+          "legendFormat": "Disk Put Latenz", 
+          "refId": "A" 
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 102,
+      "title": "STORAGE & THROUGHPUT (FF3)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops" }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "id": 5,
+      "title": "Object Write Rate (Puts per Second)",
+      "targets": [
+        { 
+          "expr": "rate(ipfs_fsrepo_datastore_put_total[1m])", 
+          "legendFormat": "Objects Stored / s", 
+          "refId": "A" 
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit" }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "id": 6,
+      "title": "Blockstore Cache Hit Ratio",
+      "targets": [
+        { 
+          "expr": "rate(ipfs_bs_cache_boxo_blockstore_cache_hits[1m]) / rate(ipfs_bs_cache_boxo_blockstore_cache_total[1m])", 
+          "legendFormat": "Hit Rate", 
+          "refId": "A" 
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "id": 103,
+      "title": "SYSTEM RESOURCES",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "fieldConfig": {
+        "defaults": { "unit": "decbytes" }
+      },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 24 },
+      "id": 7,
+      "title": "Process Memory Usage (RSS)",
+      "targets": [
+        { "expr": "process_resident_memory_bytes{job=~\"ipfs.*\"}", "legendFormat": "{{instance}}", "refId": "A" }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus_datasource" },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 24 },
+      "id": 8,
+      "title": "Network Traffic (In/Out)",
+      "targets": [
+        { "expr": "rate(process_network_receive_bytes_total[1m])", "legendFormat": "Inbound", "refId": "A" },
+        { "expr": "rate(process_network_transmit_bytes_total[1m])", "legendFormat": "Outbound", "refId": "B" }
+      ],
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["Bachelorarbeit", "IPFS", "Kubo"],
+  "time": { "from": "now-30m", "to": "now" },
+  "title": "IPFS Health & Performance",
+  "uid": "ipfs-master-diag",
+  "version": 4
+}

@@ -1,0 +1,51 @@
+---
+- name: Copy ignition module
+  ansible.builtin.copy:
+    src: ignition/
+    dest: "{{ project_directory }}/besu_contract/ignition/"
+    mode: '0644'
+
+- name: Deploy Smart Contract (asynchronous)
+  ansible.builtin.command:
+    chdir: "{{ project_directory }}/besu_contract"
+    cmd: "/bin/npx hardhat ignition deploy ignition/modules/ThesisTraceability.js --network besu"
+  environment:
+    HARDHAT_IGNITION_CONFIRM_DEPLOYMENT: "false"
+  async: 600 # 10 minute timeout for the deployment
+  poll: 0 # Fire and forget, we will check status in the next task
+  register: deploy_async_result
+  changed_when: false # Status is checked in the wait task
+
+- name: Wait for contract deployment to finish
+  ansible.builtin.async_status:
+    jid: "{{ deploy_async_result.ansible_job_id }}"
+  register: deploy_job_result
+  until: deploy_job_result.finished
+  retries: 40 # Poll for 10 minutes (40 * 15s)
+  delay: 15
+
+- name: Read deployed addresses file
+  ansible.builtin.slurp:
+    src: "{{ project_directory }}/besu_contract/ignition/deployments/chain-1337/deployed_addresses.json"
+  register: deployed_addresses_json_b64
+  ignore_errors: true # File might not exist if deployment failed
+
+- name: Fail if contract deployment did not produce an address file
+  ansible.builtin.fail:
+    msg: "Contract deployment failed. The address file was not created. Check logs on the target host in ~/.ansible_async/"
+  when: deployed_addresses_json_b64.failed or 'content' not in deployed_addresses_json_b64
+
+- name: Extract contract address and set as fact
+  ansible.builtin.set_fact:
+    contract_address: "{{ (deployed_addresses_json_b64.content | b64decode | from_json).values() | list | first }}"
+
+- name: Persist contract address to local controller
+  ansible.builtin.fetch:
+    src: "{{ project_directory }}/besu_contract/ignition/deployments/chain-1337/deployed_addresses.json"
+    dest: "../.tmp_artifacts/deployed_addresses.json"
+    flat: true
+  run_once: true
+
+- name: Display deployed contract address
+  ansible.builtin.debug:
+    msg: "ThesisTraceability contract deployed to: {{ contract_address }}"

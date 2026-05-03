@@ -1,0 +1,11 @@
+plugin: hetzner.hcloud.hcloud
+token: YOUR_HCLOUD_API_TOKEN_HERE
+strict: false
+label_selector: "project=bachelor"
+
+keyed_groups:
+  - key: hcloud_location
+    prefix: hcloud_location
+  - key: hcloud_labels
+    prefix: hcloud_label
+
