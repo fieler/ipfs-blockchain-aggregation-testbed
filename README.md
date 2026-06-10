@@ -1,6 +1,6 @@
-# Bachelorarbeit — IoT-IPFS-Blockchain Aggregation Testbed
+# IoT-IPFS-Blockchain Aggregation Testbed
 
-Automated infrastructure and experiment platform for a Bachelor's thesis on aggregation strategies in a hybrid IPFS-Blockchain storage system for agricultural supply-chain traceability.
+Automated infrastructure and experiment platform on aggregation strategies in a hybrid IPFS-Blockchain storage system for agricultural supply-chain traceability.
 
 **Research question:** How do time-based and volume-based aggregation strategies on an API gateway affect system latency, throughput, and resource efficiency of a hybrid IPFS-Blockchain storage solution?
 
